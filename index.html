@@ -140,11 +140,11 @@
                 bucketDim: { w: 8, h: 6, gap: 1.5 },
                 hitbox: { catchW: 8 }, 
                 graphics: {
-                    BOMBER: 'https://kevindkeene.github.io/kaboom/assets/bomber336x800.gif',
-                    BOMB: 'https://kevindkeene.github.io/kaboom/assets/bomb240x448.gif',
-                    BUCKET: 'https://kevindkeene.github.io/kaboom/assets/bucket.gif', 
-                    BACKGROUND: 'https://kevindkeene.github.io/kaboom/assets/kaboom-background.gif',
-                    SLIME: 'https://kevindkeene.github.io/kaboom/assets/slimeball.gif'
+                    BOMBER: 'https://kevindkeene.github.io/diner_dash/assets/bomber336x800.gif',
+                    BOMB: 'https://kevindkeene.github.io/diner_dash/assets/bomb240x448.gif',
+                    BUCKET: 'https://kevindkeene.github.io/diner_dash/assets/bucket.gif', 
+                    BACKGROUND: 'https://kevindkeene.github.io/diner_dash/assets/kaboom-background.gif',
+                    SLIME: 'https://kevindkeene.github.io/diner_dash/assets/slimeball.gif'
                 },
                 settings: { baseBombSpeed: 1.2, initialBomberSpeed: 1.0, twitchChance: 0.04 }
             },
@@ -154,23 +154,22 @@
                 bucketDim: { w: 15, h: 18, gap: 0 },
                 hitboxByLife: [{ catchW: 12 }, { catchW: 12 }, { catchW: 12 }],
                 graphics: {
-                    BOMBER: 'https://kevindkeene.github.io/kaboom/assets/ufo2-400x400.gif', 
-                    BOMB: 'https://kevindkeene.github.io/kaboom/assets/cow3.gif', 
-                    SLIME: 'https://kevindkeene.github.io/kaboom/assets/slimeball.gif',
+                    BOMBER: 'https://kevindkeene.github.io/diner_dash/assets/ufo2-400x400.gif', 
+                    BOMB: 'https://kevindkeene.github.io/diner_dash/assets/cow3.gif', 
+                    SLIME: 'https://kevindkeene.github.io/diner_dash/assets/slimeball.gif',
                     BUCKET_LAYERS: [
-                        'https://kevindkeene.github.io/kaboom/assets/tractor-0hay.gif',
-                        'https://kevindkeene.github.io/kaboom/assets/tractor-1hay.gif',
-                        'https://kevindkeene.github.io/kaboom/assets/tractor-2hay.gif',
-                        'https://kevindkeene.github.io/kaboom/assets/tractor-3hay.gif'
+                        'https://kevindkeene.github.io/diner_dash/assets/tractor-0hay.gif',
+                        'https://kevindkeene.github.io/diner_dash/assets/tractor-1hay.gif',
+                        'https://kevindkeene.github.io/diner_dash/assets/tractor-2hay.gif',
+                        'https://kevindkeene.github.io/diner_dash/assets/tractor-3hay.gif'
                     ],
-                    BACKGROUND: 'https://kevindkeene.github.io/kaboom/assets/alien_background2.gif'
+                    BACKGROUND: 'https://kevindkeene.github.io/diner_dash/assets/alien_background2.gif'
                 },
                 settings: { baseBombSpeed: 1.4, initialBomberSpeed: 1.2, twitchChance: 0.06 }
             }
         };
 
         // --- FIREBASE CONFIG HANDLING ---
-        // If you are using this on GitHub, replace the empty object below with your own Firebase Config
         const githubFirebaseConfig = {
             apiKey: "",
             authDomain: "",
@@ -190,7 +189,6 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'catch-22-v2';
         let db, auth, userId = null;
 
-        // Initialize Firebase only if we have a config
         if (firebaseConfig.apiKey) {
             const app = initializeApp(firebaseConfig);
             auth = getAuth(app);
@@ -373,7 +371,7 @@
             const ex = document.createElement('div');
             ex.className = 'explosion-img pixel-art';
             ex.style.left = `${x}%`; ex.style.top = `${y}%`; ex.style.width = '15%';
-            ex.innerHTML = `<img src="https://kevindkeene.github.io/kaboom/assets/explosion320x256.gif" class="w-full">`;
+            ex.innerHTML = `<img src="https://kevindkeene.github.io/diner_dash/assets/explosion320x256.gif" class="w-full">`;
             document.getElementById('game-area').appendChild(ex);
             setTimeout(() => ex.remove(), 600);
         }
