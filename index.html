@@ -120,6 +120,7 @@
             transition: transform 0.1s, background 0.2s;
             border: 4px solid rgba(255,255,255,0.1);
             cursor: pointer;
+            pointer-events: auto;
         }
         .btn-4k:active { transform: scale(0.95); }
 
@@ -390,14 +391,19 @@
             saveScore();
             document.getElementById('overlay').classList.remove('hidden');
             document.getElementById('status-message').innerHTML = `
-                <p class="text-5xl font-brand text-red-500 mb-4">ARCADE OVER</p>
+                <p class="text-5xl font-brand text-red-500 mb-4">GAME OVER</p>
                 <p class="text-3xl font-bold mb-8 uppercase tracking-widest">Score: ${score.toLocaleString()}</p>
             `;
+            const btnContainer = document.getElementById('difficulty-buttons');
+            btnContainer.innerHTML = ''; // Ensure container is clear for touch interaction
             const btn = document.createElement('button');
             btn.className = "bg-white text-black btn-4k hover:bg-slate-200";
             btn.textContent = "MAIN MENU";
-            btn.onclick = () => showMenu();
-            document.getElementById('difficulty-buttons').appendChild(btn);
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                showMenu();
+            };
+            btnContainer.appendChild(btn);
         }
 
         function updateStats() {
@@ -435,7 +441,10 @@
                     <span class="font-brand" style="color: ${theme.color}">${theme.title}</span>
                     <span class="font-mono text-sm opacity-50">${high.toLocaleString()}</span>
                 `;
-                b.onclick = () => startGame(id);
+                b.onclick = (e) => {
+                    e.stopPropagation();
+                    startGame(id);
+                };
                 btns.appendChild(b);
             });
         }
