@@ -239,7 +239,8 @@
                     if (!data[s.theme] || s.score > data[s.theme].score) data[s.theme] = s;
                 });
                 leaderboards = data;
-                if (isGameOver) showMenu();
+                // If we are currently showing a menu, update it.
+                // We handle the initial splash separately.
             }, (err) => console.error("Firestore error", err));
         }
 
@@ -431,6 +432,28 @@
             document.getElementById('buckets-stack').style.left = `${bucketX}%`;
         }
 
+        function showInitialSplash() {
+            isGameOver = true;
+            const overlay = document.getElementById('overlay');
+            overlay.classList.remove('hidden');
+            const btns = document.getElementById('difficulty-buttons'); 
+            btns.innerHTML = '';
+            document.getElementById('status-message').innerHTML = `
+                <h1 class="text-7xl font-brand italic text-white mb-4">CATCH-22</h1>
+                <p class="text-sm tracking-[0.6em] opacity-40 mb-12 uppercase font-black">4K Ultra Landscape Edition</p>
+            `;
+            const btn = document.createElement('button');
+            btn.className = "bg-white text-black btn-4k hover:bg-slate-200";
+            btn.textContent = "ENTER ARCADE";
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                // Request fullscreen on first user interaction
+                toggleFullscreen();
+                showMenu();
+            };
+            btns.appendChild(btn);
+        }
+
         function showMenu() {
             isGameOver = true; document.body.classList.remove('playing');
             document.getElementById('overlay').classList.remove('hidden');
@@ -472,7 +495,9 @@
         window.toggleFullscreen = toggleFullscreen;
 
         window.onload = () => {
-            showMenu();
+            // Start with the initial splash screen to capture user gesture for Fullscreen
+            showInitialSplash();
+            
             const area = document.getElementById('game-area');
             area.addEventListener('mousemove', handleInteraction);
             area.addEventListener('touchstart', (e) => { 
