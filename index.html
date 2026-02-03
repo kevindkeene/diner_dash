@@ -125,6 +125,14 @@
         .btn-4k:active { transform: scale(0.95); }
 
         .playing #game-area { cursor: none; }
+
+        #fullscreen-toggle {
+            transition: all 0.2s;
+        }
+        #fullscreen-toggle:hover {
+            background-color: rgba(30, 41, 59, 1);
+            color: white;
+        }
     </style>
     
     <script type="module">
@@ -449,6 +457,20 @@
             });
         }
 
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable fullscreen mode: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        window.toggleFullscreen = toggleFullscreen;
+
         window.onload = () => {
             showMenu();
             const area = document.getElementById('game-area');
@@ -466,6 +488,11 @@
                     handleInteraction(e); 
                 }
             }, { passive: false });
+
+            // Show fullscreen button only if supported
+            if (!document.fullscreenEnabled) {
+                document.getElementById('fullscreen-toggle').style.display = 'none';
+            }
         };
     </script>
 </head>
@@ -479,6 +506,11 @@
             </div>
             
             <div class="flex gap-12 items-center">
+                <!-- Fullscreen Toggle -->
+                <button id="fullscreen-toggle" onclick="toggleFullscreen()" class="hud-sub border-2 border-slate-700 text-slate-400 px-4 py-2 rounded-lg font-black uppercase tracking-tighter">
+                    Fullscreen
+                </button>
+
                 <div class="flex flex-col items-center">
                     <span id="level-display" class="hud-sub font-black text-yellow-500 uppercase">Sector 01</span>
                     <div class="flex items-center gap-3 mt-1">
