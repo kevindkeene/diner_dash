@@ -72,6 +72,17 @@
 
         .bucket-img { object-fit: contain; width: 100%; height: 100%; }
         .bomb-img { position: absolute; z-index: 50; transform: translateX(-50%); }
+
+        #gunk-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: #22c55e;
+            pointer-events: none;
+            z-index: 150;
+            opacity: 0;
+            transition: opacity 0.1s linear;
+        }
         
         .explosion-img { 
             position: absolute; 
@@ -116,16 +127,16 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const INITIAL_BUCKET_COUNT = 3;
-        const CATCHES_PER_LEVEL = 15; // Increased for wider screens
+        const CATCHES_PER_LEVEL = 15;
 
         const THEMES = {
             'classic': {
                 title: 'Short Fuse', id: 'classic', isStacked: true, fontClass: 'font-short-fuse', color: '#ef4444',
-                bomberDim: { w: 8, h: 12 }, bombDim: { w: 4, h: 8 }, // Smaller relative to width in landscape
+                bomberDim: { w: 8, h: 12 }, bombDim: { w: 4, h: 8 },
                 bucketDim: { w: 8, h: 6, gap: 1.5 },
                 hitbox: { catchW: 8 }, 
                 graphics: {
@@ -158,25 +169,60 @@
             }
         };
 
+        // --- FIREBASE CONFIG HANDLING ---
+        // If you are using this on GitHub, replace the empty object below with your own Firebase Config
+        const githubFirebaseConfig = {
+            apiKey: "",
+            authDomain: "",
+            projectId: "",
+            storageBucket: "",
+            messagingSenderId: "",
+            appId: ""
+        };
+
+        let firebaseConfig;
+        try {
+            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : githubFirebaseConfig;
+        } catch (e) {
+            firebaseConfig = githubFirebaseConfig;
+        }
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'catch-22-v2';
+        let db, auth, userId = null;
+
+        // Initialize Firebase only if we have a config
+        if (firebaseConfig.apiKey) {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    fetchLeaderboards();
+                } else {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (err) { console.error("Auth error", err); }
+                }
+            });
+        }
+
+        // --- STATE ---
         let score = 0, lives = INITIAL_BUCKET_COUNT, level = 1;
         let isGameOver = true, isGamePaused = false, frame = 0;
         let bombs = [], currentThemeId = 'classic';
         let bucketX = 50, madBomberX = 50, madBomberDirection = 1, speedMultiplier = 1;
         let catchesThisLevel = 0, gunkTimeRemaining = 0;
         let animationFrameHandle;
-        let userId = null;
         let leaderboards = {};
 
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'catch-22-v2';
-
-        onAuthStateChanged(auth, (user) => { if (user) { userId = user.uid; fetchLeaderboards(); } });
-        signInAnonymously(auth);
-
         async function fetchLeaderboards() {
+            if (!db) return;
             const q = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
             onSnapshot(q, (snapshot) => {
                 const data = {};
@@ -186,11 +232,11 @@
                 });
                 leaderboards = data;
                 if (isGameOver) showMenu();
-            });
+            }, (err) => console.error("Firestore error", err));
         }
 
         async function saveScore() {
-            if (!userId || score === 0) return;
+            if (!db || !userId || score === 0) return;
             const scoreDoc = doc(db, 'artifacts', appId, 'public', 'data', 'scores', userId + "_" + currentThemeId);
             await setDoc(scoreDoc, { userId, score, theme: currentThemeId, timestamp: Date.now() });
         }
@@ -204,8 +250,10 @@
             score = 0; lives = INITIAL_BUCKET_COUNT; frame = 0; level = 1;
             speedMultiplier = 1; catchesThisLevel = 0;
             madBomberX = 50;
+            gunkTimeRemaining = 0;
             bombs.forEach(b => b.el.remove()); bombs = [];
             document.getElementById('overlay').classList.add('hidden');
+            document.getElementById('gunk-overlay').style.opacity = 0;
             initGameElements();
             updateStats();
             gameLoop();
@@ -246,6 +294,10 @@
         function gameLoop() {
             if (isGameOver || isGamePaused) return;
             frame++;
+            if (gunkTimeRemaining > 0) {
+                gunkTimeRemaining -= 16;
+                document.getElementById('gunk-overlay').style.opacity = (gunkTimeRemaining / 3000) * 0.4;
+            }
             updateBomber();
             updateBombs();
             animationFrameHandle = requestAnimationFrame(gameLoop);
@@ -260,7 +312,6 @@
             else if (madBomberX < 6) madBomberDirection = 1;
             document.getElementById('mad-bomber-img').style.left = `${madBomberX}%`;
             
-            // Drop logic adjusted for horizontal speed
             const dropRate = Math.max(20, 80 - (level * 4));
             if (frame % Math.floor(dropRate) === 0) {
                 createBomb(madBomberX, 10, Math.random() < 0.1 ? 'slime' : 'good');
@@ -286,7 +337,6 @@
                 const b = bombs[i];
                 b.y += b.speed;
                 b.el.style.top = `${b.y}%`;
-                // Hit detection area adjusted for landscape Y
                 if (b.y > 78 && b.y < 86) {
                     if (Math.abs(b.x - bucketX) < hitboxW / 1.5) handleCatch(i, b);
                 } else if (b.y > 95) {
@@ -297,8 +347,13 @@
         }
 
         function handleCatch(idx, b) {
-            score += (level * 10); catchesThisLevel++; triggerHaptic(20);
-            if (catchesThisLevel >= CATCHES_PER_LEVEL) nextLevel();
+            if (b.type === 'slime') {
+                gunkTimeRemaining = 3000;
+                triggerHaptic(100);
+            } else {
+                score += (level * 10); catchesThisLevel++; triggerHaptic(20);
+                if (catchesThisLevel >= CATCHES_PER_LEVEL) nextLevel();
+            }
             b.el.remove(); bombs.splice(idx, 1);
             updateStats();
         }
@@ -357,7 +412,8 @@
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const rect = document.getElementById('game-area').getBoundingClientRect();
             let rawX = ((clientX - rect.left) / rect.width) * 100;
-            bucketX = bucketX + (rawX - bucketX) * 0.8;
+            const lerp = gunkTimeRemaining > 0 ? 0.1 : 0.8;
+            bucketX = bucketX + (rawX - bucketX) * lerp;
             bucketX = Math.max(4, Math.min(bucketX, 96));
             document.getElementById('buckets-stack').style.left = `${bucketX}%`;
         }
@@ -416,6 +472,7 @@
 
         <!-- GAME AREA -->
         <div id="game-area">
+            <div id="gunk-overlay"></div>
             <div id="mad-bomber-img" class="mad-bomber-img"></div>
             <div id="buckets-stack" class="bucket-stack"></div>
             
