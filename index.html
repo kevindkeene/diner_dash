@@ -133,6 +133,20 @@
             background-color: rgba(30, 41, 59, 1);
             color: white;
         }
+        
+        .floating-points {
+            position: absolute;
+            color: #fbbf24;
+            font-weight: 900;
+            font-size: 1.5rem;
+            pointer-events: none;
+            z-index: 210;
+            animation: floatUpFade 1s ease-out forwards;
+        }
+        @keyframes floatUpFade {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
     </style>
     
     <script type="module">
@@ -146,12 +160,17 @@
         const THEMES = {
             'classic': {
                 title: 'Short Fuse', id: 'classic', isStacked: true, fontClass: 'font-short-fuse', color: '#ef4444',
-                bomberDim: { w: 8, h: 12 }, bombDim: { w: 4, h: 8 },
+                bomberDim: { w: 8, h: 12 }, bombDim: { w: 5, h: 5 },
                 bucketDim: { w: 8, h: 6, gap: 1.5 },
                 hitbox: { catchW: 8 }, 
                 graphics: {
                     BOMBER: 'https://kevindkeene.github.io/diner_dash/assets/bomber336x800.gif',
-                    BOMB: 'https://kevindkeene.github.io/diner_dash/assets/bomb240x448.gif',
+                    // Defined specific food types and values
+                    FOOD_ITEMS: [
+                        { file: '50s-fries.svg', value: 10 },
+                        { file: '50s-shake.svg', value: 25 },
+                        { file: '50s-burger.svg', value: 50 }
+                    ],
                     BUCKET: 'https://kevindkeene.github.io/diner_dash/assets/bucket.gif', 
                     BACKGROUND: 'https://kevindkeene.github.io/diner_dash/assets/kaboom-background.gif',
                     SLIME: 'https://kevindkeene.github.io/diner_dash/assets/slimeball.gif'
@@ -239,8 +258,6 @@
                     if (!data[s.theme] || s.score > data[s.theme].score) data[s.theme] = s;
                 });
                 leaderboards = data;
-                // If we are currently showing a menu, update it.
-                // We handle the initial splash separately.
             }, (err) => console.error("Firestore error", err));
         }
 
@@ -323,20 +340,51 @@
             
             const dropRate = Math.max(20, 80 - (level * 4));
             if (frame % Math.floor(dropRate) === 0) {
-                createBomb(madBomberX, 10, Math.random() < 0.1 ? 'slime' : 'good');
+                const isSlime = Math.random() < 0.1;
+                if (isSlime) {
+                    createBomb(madBomberX, 10, 'slime');
+                } else {
+                    if (currentThemeId === 'classic') {
+                        // Logic for Short Fuse multi-item drop
+                        const rand = Math.random();
+                        let food;
+                        if (rand < 0.2) food = theme.graphics.FOOD_ITEMS[2]; // Burger (20% chance)
+                        else if (rand < 0.5) food = theme.graphics.FOOD_ITEMS[1]; // Shake (30% chance)
+                        else food = theme.graphics.FOOD_ITEMS[0]; // Fries (50% chance)
+                        
+                        createBomb(madBomberX, 10, 'good', food);
+                    } else {
+                        // Standard drop for Bale Out
+                        createBomb(madBomberX, 10, 'good');
+                    }
+                }
             }
         }
 
-        function createBomb(x, y, type) {
+        function createBomb(x, y, type, foodData = null) {
             const theme = THEMES[currentThemeId];
             const el = document.createElement('div');
-            el.className = 'bomb-img pixel-art absolute';
+            el.className = 'bomb-img absolute';
             el.style.width = `${theme.bombDim.w}%`; 
             el.style.left = `${x}%`; 
             el.style.top = `${y}%`;
-            el.innerHTML = `<img src="${type === 'slime' ? theme.graphics.SLIME : theme.graphics.BOMB}" class="w-full h-full">`;
+            
+            let imgSrc;
+            let value = 10; // Default points
+
+            if (type === 'slime') {
+                imgSrc = theme.graphics.SLIME;
+            } else if (foodData) {
+                imgSrc = `https://kevindkeene.github.io/diner_dash/assets/${foodData.file}`;
+                value = foodData.value;
+            } else {
+                imgSrc = theme.graphics.BOMB;
+                value = 10;
+            }
+
+            el.innerHTML = `<img src="${imgSrc}" class="w-full h-full object-contain">`;
             document.getElementById('game-area').appendChild(el);
-            bombs.push({ x, y, el, type, speed: theme.settings.baseBombSpeed * speedMultiplier });
+            bombs.push({ x, y, el, type, value, speed: theme.settings.baseBombSpeed * speedMultiplier });
         }
 
         function updateBombs() {
@@ -360,11 +408,29 @@
                 gunkTimeRemaining = 3000;
                 triggerHaptic(100);
             } else {
-                score += (level * 10); catchesThisLevel++; triggerHaptic(20);
+                // Use the item's specific value multiplied by level bonus
+                const points = b.value * level;
+                score += points;
+                catchesThisLevel++;
+                triggerHaptic(20);
+                
+                // Show floating point text at catch location
+                showFloatingPoints(b.x, 82, `+${points}`);
+                
                 if (catchesThisLevel >= CATCHES_PER_LEVEL) nextLevel();
             }
             b.el.remove(); bombs.splice(idx, 1);
             updateStats();
+        }
+
+        function showFloatingPoints(x, y, text) {
+            const el = document.createElement('div');
+            el.className = 'floating-points font-brand';
+            el.style.left = `${x}%`;
+            el.style.top = `${y}%`;
+            el.textContent = text;
+            document.getElementById('game-area').appendChild(el);
+            setTimeout(() => el.remove(), 1000);
         }
 
         function handleMiss(idx, b) {
@@ -404,7 +470,7 @@
                 <p class="text-3xl font-bold mb-8 uppercase tracking-widest">Score: ${score.toLocaleString()}</p>
             `;
             const btnContainer = document.getElementById('difficulty-buttons');
-            btnContainer.innerHTML = ''; // Ensure container is clear for touch interaction
+            btnContainer.innerHTML = '';
             const btn = document.createElement('button');
             btn.className = "bg-white text-black btn-4k hover:bg-slate-200";
             btn.textContent = "MAIN MENU";
@@ -447,7 +513,6 @@
             btn.textContent = "ENTER ARCADE";
             btn.onclick = (e) => {
                 e.stopPropagation();
-                // Request fullscreen on first user interaction
                 toggleFullscreen();
                 showMenu();
             };
@@ -495,13 +560,10 @@
         window.toggleFullscreen = toggleFullscreen;
 
         window.onload = () => {
-            // Start with the initial splash screen to capture user gesture for Fullscreen
             showInitialSplash();
-            
             const area = document.getElementById('game-area');
             area.addEventListener('mousemove', handleInteraction);
             area.addEventListener('touchstart', (e) => { 
-                // Only prevent default if we are actively playing to avoid blocking menu clicks
                 if (!isGameOver && !isGamePaused) {
                     e.preventDefault(); 
                     handleInteraction(e); 
@@ -514,7 +576,6 @@
                 }
             }, { passive: false });
 
-            // Show fullscreen button only if supported
             if (!document.fullscreenEnabled) {
                 document.getElementById('fullscreen-toggle').style.display = 'none';
             }
@@ -531,7 +592,6 @@
             </div>
             
             <div class="flex gap-12 items-center">
-                <!-- Fullscreen Toggle -->
                 <button id="fullscreen-toggle" onclick="toggleFullscreen()" class="hud-sub border-2 border-slate-700 text-slate-400 px-4 py-2 rounded-lg font-black uppercase tracking-tighter">
                     Fullscreen
                 </button>
