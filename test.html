@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Catch-22: 4K Ultra Landscape</title>
+    <title>Boma's Burgers - Diner Dash</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -70,7 +70,6 @@
             pointer-events: auto;
         }
 
-        /* --- POSITIONING STACKS --- */
         .road-stack {
             margin-top: calc(var(--gu) * 33); 
             display: flex;
@@ -137,6 +136,18 @@
             text-underline-offset: 4px;
         }
 
+        /* Styling for the Main Menu Header */
+        .expo-header {
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: #ffbf47;
+            letter-spacing: 10px;
+            font-size: calc(var(--gu) * 1.6);
+            text-align: center;
+            margin-bottom: calc(var(--gu) * 1.5);
+        }
+
         /* --- UI ELEMENTS --- */
         .countdown-text { font-size: calc(var(--gu) * 12); font-family: 'Bungee', cursive; color: #fff; text-shadow: 0 0 30px rgba(255,255,255,0.4); line-height: 1; }
         .go-title { font-size: calc(var(--gu) * 6); font-family: 'Bungee', cursive; color: #ef4444; font-style: italic; line-height: 1; text-align: center; }
@@ -187,29 +198,57 @@
             opacity: 0;
         }
 
-        /* Responsive Character Container using GU scaling */
-        .mad-bomber-img { 
+        /* Responsive Character Containers */
+        .character-container { 
             position: absolute; 
-            top: 0; 
             z-index: 100; 
             transform: translateX(-50%); 
-            /* Dynamic Scaling based on 466x415 original size */
-            width: calc(var(--gu) * 24.27); 
-            height: calc(var(--gu) * 21.61); 
             display: flex;
-            align-items: flex-start;
             justify-content: center;
+            pointer-events: none;
         }
-        .mad-bomber-img img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
+        .character-container img {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
         }
 
-        .bucket-stack { position: absolute; display: flex; flex-direction: column-reverse; align-items: center; z-index: 90; transform: translateX(-50%); bottom: 5%; will-change: left; }
-        .bucket-img { object-fit: contain; width: 100%; height: 100%; }
+        /* Chef specific sizing (466x415 base) reduced 50% */
+        #mad-bomber-img { 
+            top: 0; 
+            width: calc(var(--gu) * 12.135); 
+            aspect-ratio: 466 / 415;
+            align-items: flex-start;
+        }
+
+        /* Waitress specific sizing (757x415 base) reduced 50% */
+        #waitress-container { 
+            bottom: 0; 
+            z-index: 90;
+            width: calc(var(--gu) * 19.7135); 
+            aspect-ratio: 757 / 415;
+            align-items: flex-end;
+            will-change: left;
+        }
+
         .bomb-img { position: absolute; z-index: 50; transform: translateX(-50%); }
         .explosion-img { position: absolute; z-index: 200; pointer-events: none; transform: translate(-50%, -50%); width: calc(var(--gu) * 15); }
+
+        /* Point indicator animation */
+        @keyframes riseAndFade {
+            0% { transform: translate(-50%, 0); opacity: 1; }
+            100% { transform: translate(-50%, calc(var(--gu) * -8)); opacity: 0; }
+        }
+        .floating-points {
+            position: absolute;
+            font-family: 'Bungee', cursive;
+            color: #fbbf24;
+            font-weight: 900;
+            pointer-events: none;
+            z-index: 600;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            animation: riseAndFade 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
 
         #toast {
             position: absolute;
@@ -239,6 +278,9 @@
         const THEME = {
             graphics: {
                 BOMBER: ASSETS_PATH + '50s-chef.svg',
+                OHNO_CHEF: ASSETS_PATH + '50s-chef-ohono.svg',
+                WAITRESS: ASSETS_PATH + '50s-waitress.svg',
+                OHNO_WAITRESS: ASSETS_PATH + '50s-waitress-ohno.svg',
                 FOOD_ITEMS: [
                     { file: '50s-fries.svg', value: 10 },
                     { file: '50s-shake.svg', value: 25 },
@@ -276,6 +318,18 @@
         let countdownTimer = 0, countdownValue = 5, adminClicks = 0;
         let lastInteractionTime = Date.now();
         const INACTIVITY_LIMIT = 20000; 
+
+        // Character Meta Constants
+        const CHEF_WIDTH_GU = 12.135;
+        const CHEF_TRAY_TOP_PCT = 76.6;     
+        
+        // Waitress Meta (757x415 base reduced 50%)
+        const WAITRESS_WIDTH_GU = 19.7135;
+        const WAITRESS_TRAY_X_PCT = (347 / 757) * 100;
+        const WAITRESS_TRAY_Y_PCT = (107 / 415) * 100;
+        const WAITRESS_TRAY_WIDTH_PCT = ((195 * 2) / 757) * 100;
+
+        let nextQueuedItem = null; 
 
         async function fetchLeaderboards() {
             if (!db) return;
@@ -337,6 +391,8 @@
             score = 0; lives = 3; frame = 0; totalItemsCaught = 0; difficultyFactor = 1;
             madBomberX = 50; bucketX = 50; targetX = 50; gunkTimeRemaining = 0;
             bombs.forEach(b => b.el.remove()); bombs = [];
+            
+            rollNextItem();
             initGameElements();
             updateStats();
             const overlay = document.getElementById('overlay');
@@ -344,6 +400,22 @@
             document.getElementById('difficulty-buttons').innerHTML = ''; 
             cancelAnimationFrame(animationFrameHandle);
             gameLoop();
+        }
+
+        function rollNextItem() {
+            const isSlime = Math.random() < 0.1;
+            if (isSlime) {
+                nextQueuedItem = { type: 'slime', imgSrc: THEME.graphics.SLIME, value: 0 };
+            } else {
+                const rand = Math.random();
+                let food = rand < 0.2 ? THEME.graphics.FOOD_ITEMS[2] : (rand < 0.5 ? THEME.graphics.FOOD_ITEMS[1] : THEME.graphics.FOOD_ITEMS[0]);
+                nextQueuedItem = { type: 'good', imgSrc: ASSETS_PATH + food.file, value: food.value };
+            }
+            
+            const trayImg = document.getElementById('tray-food-ready');
+            if (trayImg) {
+                trayImg.src = nextQueuedItem.imgSrc;
+            }
         }
 
         function showRegistration() {
@@ -371,7 +443,7 @@
             const btns = document.getElementById('difficulty-buttons'); btns.innerHTML = '';
             const startBtn = document.createElement('button');
             startBtn.className = "btn-pill w-[85%] max-w-xl mx-auto";
-            startBtn.textContent = "START DASH";
+            startBtn.textContent = "Start Game";
             startBtn.onclick = async (e) => {
                 e.stopPropagation();
                 const name = document.getElementById('reg-name').value.trim();
@@ -399,8 +471,12 @@
 
             const lerp = gunkTimeRemaining > 0 ? 0.08 : 0.4; 
             bucketX = bucketX + (targetX - bucketX) * lerp; 
-            bucketX = Math.max(4, Math.min(bucketX, 96));
-            document.getElementById('buckets-stack').style.left = `${bucketX}%`;
+            
+            const calculatedMinX = -((347 / 757 - 0.5) * WAITRESS_WIDTH_GU);
+            const calculatedMaxX = 100 - (((347 + 390) / 757 - 0.5) * WAITRESS_WIDTH_GU);
+
+            bucketX = Math.max(calculatedMinX, Math.min(bucketX, calculatedMaxX));
+            document.getElementById('waitress-container').style.left = `${bucketX}%`;
 
             if (isMissSequence) {
                 if (frame % 12 === 0 && bombs.length > 0) {
@@ -440,37 +516,72 @@
             if (Math.random() < 0.04) madBomberDirection *= -1;
             madBomberX += madBomberDirection * base;
             
-            // Boundary checks adjusted for Chef's dynamic width (~24gu total, 12gu half)
-            if (madBomberX > 88) madBomberDirection = -1; else if (madBomberX < 12) madBomberDirection = 1;
+            if (madBomberX > 93.9) madBomberDirection = -1; else if (madBomberX < 6.1) madBomberDirection = 1;
             document.getElementById('mad-bomber-img').style.left = `${madBomberX}%`;
             
             const dropRate = Math.max(15, 80 / Math.sqrt(difficultyFactor));
             if (frame % Math.floor(dropRate) === 0) {
-                if (Math.random() < 0.1) createBomb(madBomberX, 10, 'slime'); 
-                else {
-                    const rand = Math.random();
-                    let food = rand < 0.2 ? THEME.graphics.FOOD_ITEMS[2] : (rand < 0.5 ? THEME.graphics.FOOD_ITEMS[1] : THEME.graphics.FOOD_ITEMS[0]);
-                    createBomb(madBomberX, 10, 'good', food);
-                }
+                const offsetFromChefCenter = (CHEF_WIDTH_GU * -0.2908);
+                const spawnX = madBomberX + offsetFromChefCenter;
+
+                const chefHeightStagePct = (CHEF_WIDTH_GU * 0.8905) / 56.25 * 100;
+                const chefTrayTopStagePct = chefHeightStagePct * 0.766;
+                const foodHeightStagePct = (5 / 56.25) * 100;
+                const spawnY = chefTrayTopStagePct - foodHeightStagePct;
+
+                createFallingBomb(spawnX, spawnY, nextQueuedItem);
+                rollNextItem();
             }
         }
 
-        function createBomb(x, y, type, foodData = null) {
+        function createFallingBomb(x, y, data) {
             const el = document.createElement('div');
             el.className = 'bomb-img absolute';
             el.style.width = `5%`; el.style.left = `${x}%`; el.style.top = `${y}%`;
-            let imgSrc = type === 'slime' ? THEME.graphics.SLIME : (foodData ? ASSETS_PATH + foodData.file : ASSETS_PATH + THEME.graphics.FOOD_ITEMS[0].file);
-            el.innerHTML = `<img src="${imgSrc}" class="w-full h-full object-contain">`;
+            el.innerHTML = `<img src="${data.imgSrc}" style="width: 100%; height: 100%; object-fit: contain;">`;
             document.getElementById('game-area').appendChild(el);
             
             bombs.push({ 
-                x, y, el, type, 
-                value: (foodData ? foodData.value : 10), 
+                x, y, el, type: data.type, 
+                value: data.value, 
                 speed: (1.2) * Math.sqrt(difficultyFactor) 
             });
         }
 
-        function handleCatch(idx, b) {
+        function updateBombs() {
+            for (let i = bombs.length - 1; i >= 0; i--) {
+                const b = bombs[i]; 
+                b.y += b.speed; 
+                b.el.style.top = `${b.y}%`;
+                
+                // --- PIXEL-PERFECT COLLISION ENGINE ---
+                const stageHeightGU = 56.25;
+                const waitressHeightGU = WAITRESS_WIDTH_GU * (415 / 757);
+                const waitressHeightStagePct = (waitressHeightGU / stageHeightGU) * 100;
+                
+                const trayTopStagePct = 100 - (waitressHeightStagePct * (1 - (107 / 415))); 
+                const foodHeightStagePct = (5 / stageHeightGU) * 100;
+                const foodBottomEdge = b.y + foodHeightStagePct;
+
+                const waitressLeftEdge = bucketX - (WAITRESS_WIDTH_GU / 2);
+                const trayLeftX = waitressLeftEdge + (WAITRESS_WIDTH_GU * (347 / 757));
+                const trayRightX = trayLeftX + (WAITRESS_WIDTH_GU * ((195 * 2) / 757));
+
+                if (foodBottomEdge >= trayTopStagePct && b.y < trayTopStagePct) {
+                    if (b.x > (trayLeftX - 1) && b.x < (trayRightX + 1)) {
+                        handleCatch(i, b, trayTopStagePct);
+                        continue;
+                    }
+                }
+
+                if (b.y > 98) {
+                    if (b.type === 'good') handleMiss(i, b);
+                    else { b.el.remove(); bombs.splice(i, 1); }
+                }
+            }
+        }
+
+        function handleCatch(idx, b, trayY) {
             if (b.type === 'slime') { gunkTimeRemaining = 3000; triggerHaptic(100); } 
             else {
                 const multiplier = Math.floor(difficultyFactor);
@@ -478,7 +589,7 @@
                 score += points; 
                 totalItemsCaught++;
                 triggerHaptic(20);
-                showFloatingPoints(b.x, 82, `+${points}`);
+                showFloatingPoints(b.x, trayY, `+${points}`);
             }
             b.el.remove(); bombs.splice(idx, 1); updateStats();
         }
@@ -486,9 +597,21 @@
         function handleMiss(idx, b) {
             if (isMissSequence) return;
             isMissSequence = true; triggerHaptic(300); lives--;
-            updateBucketVisuals(); updateStats();
+            updateStats();
             createExplosion(b.x, 90);
             b.el.remove(); bombs.splice(idx, 1);
+
+            // Trigger "Oh No!" expressions
+            const chefMainImg = document.querySelector('#mad-bomber-img img:first-child');
+            const waitressImg = document.querySelector('#waitress-container img');
+            if (chefMainImg) chefMainImg.src = THEME.graphics.OHNO_CHEF;
+            if (waitressImg) waitressImg.src = THEME.graphics.OHNO_WAITRESS;
+
+            // Revert after brief moment (1.5s)
+            setTimeout(() => {
+                if (chefMainImg) chefMainImg.src = THEME.graphics.BOMBER;
+                if (waitressImg) waitressImg.src = THEME.graphics.WAITRESS;
+            }, 1500);
         }
 
         function endGame() {
@@ -498,7 +621,7 @@
             const area = document.getElementById('game-area'); 
             area.style.backgroundImage = `url('${THEME.graphics.SPLASH}')`;
             document.getElementById('mad-bomber-img').innerHTML = '';
-            document.getElementById('buckets-stack').innerHTML = '';
+            document.getElementById('waitress-container').innerHTML = '';
             document.getElementById('hud').classList.add('hidden'); 
             document.getElementById('gunk-overlay').style.opacity = 0;
             const overlay = document.getElementById('overlay');
@@ -518,9 +641,23 @@
         }
 
         function updateStats() { 
-            document.getElementById('score-display').textContent = score.toString().padStart(6, '0'); 
-            document.getElementById('lives-count').textContent = `×${lives}`; 
-            document.getElementById('level-display').textContent = `×${Math.floor(difficultyFactor)} DASH BOOST`; 
+            const scoreDisplay = document.getElementById('score-display');
+            if (scoreDisplay) scoreDisplay.textContent = score.toString().padStart(6, '0'); 
+            const livesDisplay = document.getElementById('lives-count');
+            if (livesDisplay) livesDisplay.textContent = `×${lives}`; 
+            const levelDisplay = document.getElementById('level-display');
+            if (levelDisplay) levelDisplay.textContent = `×${Math.floor(difficultyFactor)} DASH BOOST`; 
+        }
+
+        function showFloatingPoints(x, y, text) {
+            const el = document.createElement('div'); 
+            el.className = 'floating-points';
+            el.style.left = `${x}%`; 
+            el.style.top = `${y}%`; 
+            el.style.fontSize = `calc(var(--gu)*2.5)`; 
+            el.textContent = text;
+            document.getElementById('game-area').appendChild(el);
+            setTimeout(() => el.remove(), 1000);
         }
 
         function checkInactivity() {
@@ -582,7 +719,7 @@
         function showInitialSplash() {
             isGameOver = true; isCountdownActive = false; isMissSequence = false;
             document.body.classList.remove('playing'); document.getElementById('hud').classList.add('hidden');
-            document.getElementById('mad-bomber-img').innerHTML = ''; document.getElementById('buckets-stack').innerHTML = '';
+            document.getElementById('mad-bomber-img').innerHTML = ''; document.getElementById('waitress-container').innerHTML = '';
             bombs.forEach(b => b.el.remove()); bombs = [];
             const overlay = document.getElementById('overlay'); 
             overlay.classList.remove('hidden'); overlay.classList.remove('overlay-dark'); 
@@ -597,7 +734,7 @@
             updateLeaderboardUI();
             const btns = document.getElementById('difficulty-buttons'); btns.innerHTML = '';
             const btn = document.createElement('button'); 
-            btn.className = "btn-pill shadow-xl"; btn.textContent = "ENTER ARCADE";
+            btn.className = "btn-pill shadow-xl"; btn.textContent = "Start Game";
             btn.onclick = (e) => { e.stopPropagation(); toggleFullscreen(); currentPlayer = null; showRegistration(); };
             btns.appendChild(btn);
             updateInteraction();
@@ -606,29 +743,30 @@
         function initGameElements() {
             const area = document.getElementById('game-area');
             area.style.backgroundImage = `url('${THEME.graphics.BACKGROUND}')`;
-            updateBucketVisuals();
-            document.getElementById('mad-bomber-img').innerHTML = `<img src="${THEME.graphics.BOMBER}" class="pixel-art">`;
+            
+            const chefContainer = document.getElementById('mad-bomber-img');
+            chefContainer.innerHTML = `
+                <img src="${THEME.graphics.BOMBER}" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;">
+                <div id="tray-food-container" style="
+                    position: absolute;
+                    top: ${CHEF_TRAY_TOP_PCT}%;
+                    left: 20.92%; 
+                    width: 41.2%; 
+                    aspect-ratio: 1/1;
+                    transform: translate(-50%, -100%);
+                    z-index: 101;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <img id="tray-food-ready" src="${nextQueuedItem ? nextQueuedItem.imgSrc : ''}" style="width: 100%; height: 100%; object-fit: contain;">
+                </div>
+            `;
+
+            const waitressContainer = document.getElementById('waitress-container');
+            waitressContainer.innerHTML = `<img src="${THEME.graphics.WAITRESS}" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;">`;
+            
             document.getElementById('life-icon').src = THEME.graphics.BUCKET;
-        }
-
-        function updateBucketVisuals() {
-            const stack = document.getElementById('buckets-stack');
-            stack.style.width = `8%`;
-            stack.innerHTML = '';
-            for (let i = 0; i < lives; i++) {
-                const b = document.createElement('img');
-                b.src = THEME.graphics.BUCKET; b.className = 'bucket-img pixel-art';
-                b.style.height = `6%`; b.style.marginTop = `-1.5%`;
-                stack.appendChild(b);
-            }
-        }
-
-        function updateBombs() {
-            for (let i = bombs.length - 1; i >= 0; i--) {
-                const b = bombs[i]; b.y += b.speed; b.el.style.top = `${b.y}%`;
-                if (b.y > 78 && b.y < 86) { if (Math.abs(b.x - bucketX) < 8 / 1.5) handleCatch(i, b); } 
-                else if (b.y > 95) { if (b.type === 'good') handleMiss(i, b); else { b.el.remove(); bombs.splice(i, 1); } }
-            }
         }
 
         function createExplosion(x, y) {
@@ -651,13 +789,6 @@
         function showToast(msg) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.style.opacity = '1'; setTimeout(() => { toast.style.opacity = '0'; }, 3000); }
         function triggerHaptic(ms) { if ("vibrate" in navigator) navigator.vibrate(ms); }
         function toggleFullscreen() { if (!document.fullscreenEnabled) return; if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(e => {}); } }
-
-        function showFloatingPoints(x, y, text) {
-            const el = document.createElement('div'); el.className = 'absolute font-brand text-yellow-400 font-black pointer-events-none';
-            el.style.left = `${x}%`; el.style.top = `${y}%`; el.style.fontSize = `calc(var(--gu)*2.5)`; el.textContent = text;
-            document.getElementById('game-area').appendChild(el);
-            setTimeout(() => el.remove(), 1000);
-        }
 
         window.closeAdmin = () => document.getElementById('admin-panel').style.display = 'none';
         window.downloadLeadsCSV = downloadLeadsCSV;
@@ -693,7 +824,6 @@
         <div id="toast">Required fields empty!</div>
         
         <div id="game-area">
-            <!-- HUD absolute overlay -->
             <div id="hud" class="flex justify-between items-start hidden">
                 <div class="flex flex-col text-left" id="admin-trigger">
                     <span class="hud-sub text-white/50 font-black uppercase tracking-widest">Global Ranking System</span>
@@ -711,8 +841,9 @@
             </div>
 
             <div id="gunk-overlay"></div>
-            <div id="mad-bomber-img" class="mad-bomber-img"></div>
-            <div id="buckets-stack" class="bucket-stack"></div>
+            <div id="mad-bomber-img" class="character-container"></div>
+            <div id="waitress-container" class="character-container"></div>
+            
             <div id="overlay" class="game-status-overlay">
                 <div id="status-message" class="w-full flex flex-col items-center"></div>
                 <div id="difficulty-buttons" class="w-full flex flex-col items-center justify-center"></div>
