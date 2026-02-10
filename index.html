@@ -58,6 +58,7 @@
             display: flex; 
             flex-direction: column;
             align-items: center; 
+            justify-content: flex-start; 
             z-index: 300;
             pointer-events: none;
         }
@@ -69,9 +70,7 @@
             pointer-events: auto;
         }
 
-        /* --- ROAD AREA POSITIONING --- */
         .road-stack {
-            /* Set to exactly 33 units as requested for optimal road placement */
             margin-top: calc(var(--gu) * 33); 
             display: flex;
             flex-direction: column;
@@ -84,18 +83,7 @@
             max-width: calc(var(--gu) * 60);
             display: flex;
             flex-direction: column;
-            gap: calc(var(--gu) * 1);
-        }
-
-        .expo-header {
-            margin-bottom: calc(var(--gu) * 0.8);
-            text-align: center;
-            font-size: calc(var(--gu) * 1.8);
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.5em;
-            color: #ffbf47;
-            line-height: 1;
+            gap: calc(var(--gu) * 0.8);
         }
 
         .leaderboard-card {
@@ -136,34 +124,68 @@
         }
         .btn-pill:active { transform: scale(0.95); }
 
+        .btn-secondary {
+            background: transparent;
+            color: #6b7280;
+            font-size: calc(var(--gu) * 1.2);
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-top: calc(var(--gu) * 1);
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 4px;
+        }
+
         /* --- UI ELEMENTS --- */
         .countdown-text { font-size: calc(var(--gu) * 12); font-family: 'Bungee', cursive; color: #fff; text-shadow: 0 0 30px rgba(255,255,255,0.4); line-height: 1; }
         .go-title { font-size: calc(var(--gu) * 6); font-family: 'Bungee', cursive; color: #ef4444; font-style: italic; line-height: 1; text-align: center; }
         .go-score { font-size: calc(var(--gu) * 5.5); font-weight: 900; color: #ffbf47; font-family: monospace; margin-top: calc(var(--gu) * 0.3); }
-        .go-sub { font-size: calc(var(--gu) * 1); font-weight: 900; text-transform: uppercase; letter-spacing: 0.4em; opacity: 0.4; }
 
         /* --- FORM STYLING --- */
-        .reg-label { display: block; text-transform: uppercase; font-weight: 900; letter-spacing: 0.2em; color: #ffbf47; margin-bottom: calc(var(--gu) * 0.3); font-size: calc(var(--gu) * 1); }
+        .reg-label { display: block; text-transform: uppercase; font-weight: 900; letter-spacing: 0.2em; color: #ffbf47; margin-bottom: calc(var(--gu) * 0.2); font-size: calc(var(--gu) * 1); }
         .form-input {
             background: rgba(255,255,255,0.05);
             border: calc(var(--gu) * 0.2) solid rgba(255,255,255,0.1);
-            padding: calc(var(--gu) * 0.8) calc(var(--gu) * 1.2);
+            padding: calc(var(--gu) * 0.7) calc(var(--gu) * 1.2);
             border-radius: calc(var(--gu) * 0.8);
             color: white;
             font-size: calc(var(--gu) * 1.5);
             width: 100%;
             outline: none;
-            margin-bottom: calc(var(--gu) * 0.8);
+            margin-bottom: calc(var(--gu) * 0.5);
         }
-        .form-input:focus { border-color: #ffbf47; }
 
         /* --- HUD --- */
         #hud { background-color: #020617; border-bottom: calc(var(--gu) * 0.4) solid #1e293b; padding: calc(var(--gu) * 1); z-index: 500; }
         .hud-text { font-size: calc(var(--gu) * 2.2); }
         .hud-sub { font-size: calc(var(--gu) * 0.9); }
-        .hud-icon { width: calc(var(--gu) * 3.5); height: auto; }
 
-        /* --- ASSETS --- */
+        /* --- ADMIN DASHBOARD --- */
+        #admin-panel {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #0a0a0a;
+            color: white;
+            z-index: 2000;
+            display: none;
+            padding: calc(var(--gu) * 3);
+            overflow-y: auto;
+        }
+        .admin-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: calc(var(--gu)*1.1); }
+        .admin-table th, .admin-table td { text-align: left; padding: 8px; border-bottom: 1px solid #333; }
+        .admin-table th { color: #ffbf47; text-transform: uppercase; font-weight: 900; }
+
+        #gunk-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: #a3e635; 
+            pointer-events: none;
+            z-index: 450; 
+            opacity: 0;
+        }
+
         .mad-bomber-img { position: absolute; top: 2%; z-index: 100; transform: translateX(-50%); }
         .bucket-stack { position: absolute; display: flex; flex-direction: column-reverse; align-items: center; z-index: 90; transform: translateX(-50%); bottom: 5%; will-change: left; }
         .bucket-img { object-fit: contain; width: 100%; height: 100%; }
@@ -192,7 +214,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const ASSETS_PATH = "https://kevindkeene.github.io/diner_dash/assets/";
         const THEME = {
@@ -204,7 +226,7 @@
                     { file: '50s-burger.svg', value: 50 }
                 ],
                 BUCKET: ASSETS_PATH + 'bucket.gif', 
-                BACKGROUND: ASSETS_PATH + 'kaboom-background.gif',
+                BACKGROUND: ASSETS_PATH + 'diner-inside.svg',
                 SLIME: ASSETS_PATH + 'slimeball.gif',
                 SPLASH: ASSETS_PATH + 'splash-screen.svg',
                 EXPLOSION: ASSETS_PATH + 'explosion320x256.gif'
@@ -228,12 +250,13 @@
             });
         }
 
-        let score = 0, lives = 3, level = 1, frame = 0, bombs = [];
-        let bucketX = 50, targetX = 50, madBomberX = 50, madBomberDirection = 1, speedMultiplier = 1;
-        let catchesThisLevel = 0, gunkTimeRemaining = 0, animationFrameHandle, allScores = [];
-        
+        let score = 0, lives = 3, frame = 0, bombs = [];
+        let bucketX = 50, targetX = 50, madBomberX = 50, madBomberDirection = 1;
+        let totalItemsCaught = 0, difficultyFactor = 1, gunkTimeRemaining = 0, animationFrameHandle, allScores = [];
         let isGameOver = true, isCountdownActive = false, isMissSequence = false;
-        let countdownTimer = 0, countdownValue = 5;
+        let countdownTimer = 0, countdownValue = 5, adminClicks = 0;
+        let lastInteractionTime = Date.now();
+        const INACTIVITY_LIMIT = 20000; 
 
         async function fetchLeaderboards() {
             if (!db) return;
@@ -262,31 +285,37 @@
                             <p class="lb-company">${s.company || '---'}</p>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <p class="lb-score">${s.score.toLocaleString()}</p>
-                    </div>
+                    <div class="text-right"><p class="lb-score">${s.score.toLocaleString()}</p></div>
                 </div>
             `).join('');
         }
 
-        async function saveScore() {
-            if (!db || !userId || score === 0 || !currentPlayer) return;
-            const scoreId = `${userId}_${Date.now()}`;
-            const scoreDoc = doc(db, 'artifacts', appId, 'public', 'data', 'scores', scoreId);
-            const playerDoc = doc(db, 'artifacts', appId, 'public', 'data', 'players', userId);
+        async function saveLead() {
+            if (!db || !currentPlayer) return;
             try {
-                await setDoc(scoreDoc, { userId, name: currentPlayer.name, company: currentPlayer.company, score, timestamp: Date.now() });
-                await setDoc(playerDoc, { ...currentPlayer, bestScore: score > (currentPlayer.bestScore || 0) ? score : currentPlayer.bestScore, playCount: increment(1), lastPlayed: Date.now() }, { merge: true });
-            } catch (e) { console.error("Save failed", e); }
+                const leadsCol = collection(db, 'artifacts', appId, 'public', 'data', 'leads');
+                await addDoc(leadsCol, { ...currentPlayer, timestamp: Date.now(), deviceId: userId });
+            } catch (e) { console.error("Lead save failed", e); }
         }
 
-        function startGame() {
+        async function updateScoreInCloud() {
+            if (!db || !userId || score === 0 || !currentPlayer) return;
+            try {
+                const scoreId = `${userId}_${Date.now()}`;
+                const scoreDoc = doc(db, 'artifacts', appId, 'public', 'data', 'scores', scoreId);
+                await setDoc(scoreDoc, { userId, name: currentPlayer.name, company: currentPlayer.company, score, timestamp: Date.now() });
+            } catch (e) { console.error("Score save failed", e); }
+        }
+
+        async function startGame() {
             if (!currentPlayer) { showRegistration(); return; }
+            await saveLead(); 
+            
             isGameOver = false; isCountdownActive = true; isMissSequence = false;
             countdownValue = 5; countdownTimer = performance.now();
             document.body.classList.add('playing');
             document.getElementById('hud').classList.remove('hidden');
-            score = 0; lives = 3; frame = 0; level = 1; speedMultiplier = 1; catchesThisLevel = 0; 
+            score = 0; lives = 3; frame = 0; totalItemsCaught = 0; difficultyFactor = 1;
             madBomberX = 50; bucketX = 50; targetX = 50; gunkTimeRemaining = 0;
             bombs.forEach(b => b.el.remove()); bombs = [];
             initGameElements();
@@ -305,7 +334,7 @@
             
             document.getElementById('status-message').innerHTML = `
                 <div class="reg-container">
-                    <h2 class="font-brand text-white italic leading-none text-center" style="font-size: calc(var(--gu)*5); margin-bottom: calc(var(--gu)*0.5)">PLAYER PROFILE</h2>
+                    <h2 id="reg-trigger" class="font-brand text-white italic leading-none text-center cursor-pointer" style="font-size: calc(var(--gu)*5); margin-bottom: calc(var(--gu)*0.5)">PLAYER PROFILE</h2>
                     <p class="text-sm opacity-50 font-bold tracking-[0.3em] uppercase text-center" style="font-size: calc(var(--gu)*1.2); margin-bottom: calc(var(--gu)*1.5)">Register for the Leaderboard</p>
                     <div class="text-left">
                         <label class="reg-label">Full Name</label><input type="text" id="reg-name" class="form-input" placeholder="Enter name...">
@@ -314,48 +343,42 @@
                     </div>
                 </div>
             `;
+            
+            document.getElementById('reg-trigger').onclick = () => {
+                adminClicks++;
+                if (adminClicks >= 5) { adminClicks = 0; openAdminPanel(); }
+            };
+
             const btns = document.getElementById('difficulty-buttons'); btns.innerHTML = '';
-            const btn = document.createElement('button');
-            btn.className = "btn-pill w-[85%] max-w-xl mx-auto";
-            btn.textContent = "START DASH";
-            btn.onclick = async (e) => {
+            const startBtn = document.createElement('button');
+            startBtn.className = "btn-pill w-[85%] max-w-xl mx-auto";
+            startBtn.textContent = "START DASH";
+            startBtn.onclick = async (e) => {
                 e.stopPropagation();
                 const name = document.getElementById('reg-name').value.trim();
                 const company = document.getElementById('reg-company').value.trim();
                 const email = document.getElementById('reg-email').value.trim();
                 if (!name || !company || !email) { showToast("Required fields empty!"); return; }
-                currentPlayer = { name, company, email, playCount: 0, bestScore: 0 };
+                currentPlayer = { name, company, email };
                 startGame();
             };
-            btns.appendChild(btn);
-        }
+            
+            const backBtn = document.createElement('button');
+            backBtn.className = "btn-secondary";
+            backBtn.textContent = "Back to Menu";
+            backBtn.onclick = (e) => { e.stopPropagation(); showInitialSplash(); };
 
-        function initGameElements() {
-            const area = document.getElementById('game-area');
-            area.style.backgroundImage = `url('${THEME.graphics.BACKGROUND}')`;
-            updateBucketVisuals();
-            document.getElementById('mad-bomber-img').style.width = `8%`;
-            document.getElementById('mad-bomber-img').innerHTML = `<img src="${THEME.graphics.BOMBER}" class="pixel-art w-full h-full">`;
-            document.getElementById('life-icon').src = THEME.graphics.BUCKET;
-        }
-
-        function updateBucketVisuals() {
-            const stack = document.getElementById('buckets-stack');
-            stack.style.width = `8%`;
-            stack.innerHTML = '';
-            for (let i = 0; i < lives; i++) {
-                const b = document.createElement('img');
-                b.src = THEME.graphics.BUCKET; b.className = 'bucket-img pixel-art';
-                b.style.height = `6%`; b.style.marginTop = `-1.5%`;
-                stack.appendChild(b);
-            }
+            btns.appendChild(startBtn);
+            btns.appendChild(backBtn);
         }
 
         function gameLoop() {
             if (isGameOver) return;
             frame++;
 
-            // Smooth bucket physics
+            // Global Difficulty Scaling: Multiplier grows by 0.05 every item caught
+            difficultyFactor = 1 + (totalItemsCaught * 0.05);
+
             const lerp = gunkTimeRemaining > 0 ? 0.08 : 0.4; 
             bucketX = bucketX + (targetX - bucketX) * lerp; 
             bucketX = Math.max(4, Math.min(bucketX, 96));
@@ -384,19 +407,26 @@
                 else if (countdownValue === 0) status.innerHTML = `<div class="road-stack"><p class="countdown-text animate-bounce">GO!</p></div>`;
                 else { isCountdownActive = false; document.getElementById('overlay').classList.add('hidden'); }
             } else {
-                if (gunkTimeRemaining > 0) { gunkTimeRemaining -= 16; document.getElementById('gunk-overlay').style.opacity = (gunkTimeRemaining / 3000) * 0.4; }
+                if (gunkTimeRemaining > 0) { 
+                    gunkTimeRemaining -= 16; 
+                    document.getElementById('gunk-overlay').style.opacity = (gunkTimeRemaining / 3000) * 0.6; 
+                } else { document.getElementById('gunk-overlay').style.opacity = 0; }
                 updateBomber(); updateBombs();
+                if (frame % 10 === 0) updateStats();
             }
             animationFrameHandle = requestAnimationFrame(gameLoop);
         }
 
         function updateBomber() {
-            const base = 1.0 * speedMultiplier;
+            // Speed up based on difficulty factor
+            const base = (1.0) * difficultyFactor;
             if (Math.random() < 0.04) madBomberDirection *= -1;
             madBomberX += madBomberDirection * base;
             if (madBomberX > 94) madBomberDirection = -1; else if (madBomberX < 6) madBomberDirection = 1;
             document.getElementById('mad-bomber-img').style.left = `${madBomberX}%`;
-            const dropRate = Math.max(20, 80 - (level * 4));
+            
+            // Speed up drop rate (min 15 frames)
+            const dropRate = Math.max(15, 80 / Math.sqrt(difficultyFactor));
             if (frame % Math.floor(dropRate) === 0) {
                 if (Math.random() < 0.1) createBomb(madBomberX, 10, 'slime'); 
                 else {
@@ -414,32 +444,27 @@
             let imgSrc = type === 'slime' ? THEME.graphics.SLIME : (foodData ? ASSETS_PATH + foodData.file : ASSETS_PATH + THEME.graphics.FOOD_ITEMS[0].file);
             el.innerHTML = `<img src="${imgSrc}" class="w-full h-full object-contain">`;
             document.getElementById('game-area').appendChild(el);
-            bombs.push({ x, y, el, type, value: (foodData ? foodData.value : 10), speed: 1.2 * speedMultiplier });
-        }
-
-        function updateBombs() {
-            for (let i = bombs.length - 1; i >= 0; i--) {
-                const b = bombs[i]; b.y += b.speed; b.el.style.top = `${b.y}%`;
-                if (b.y > 78 && b.y < 86) { if (Math.abs(b.x - bucketX) < 8 / 1.5) handleCatch(i, b); } 
-                else if (b.y > 95) { if (b.type === 'good') handleMiss(i, b); else { b.el.remove(); bombs.splice(i, 1); } }
-            }
+            
+            // Fall speed increases with difficulty
+            bombs.push({ 
+                x, y, el, type, 
+                value: (foodData ? foodData.value : 10), 
+                speed: (1.2) * Math.sqrt(difficultyFactor) 
+            });
         }
 
         function handleCatch(idx, b) {
             if (b.type === 'slime') { gunkTimeRemaining = 3000; triggerHaptic(100); } 
             else {
-                const points = b.value * level; score += points; catchesThisLevel++; triggerHaptic(20);
+                // Points scale with the integer part of difficultyFactor
+                const multiplier = Math.floor(difficultyFactor);
+                const points = b.value * multiplier; 
+                score += points; 
+                totalItemsCaught++;
+                triggerHaptic(20);
                 showFloatingPoints(b.x, 82, `+${points}`);
-                if (catchesThisLevel >= 15) nextLevel();
             }
             b.el.remove(); bombs.splice(idx, 1); updateStats();
-        }
-
-        function showFloatingPoints(x, y, text) {
-            const el = document.createElement('div'); el.className = 'floating-points font-brand';
-            el.style.left = `${x}%`; el.style.top = `${y}%`; el.textContent = text;
-            document.getElementById('game-area').appendChild(el);
-            setTimeout(() => el.remove(), 1000);
         }
 
         function handleMiss(idx, b) {
@@ -450,54 +475,99 @@
             b.el.remove(); bombs.splice(idx, 1);
         }
 
-        function createExplosion(x, y) {
-            const ex = document.createElement('div');
-            ex.className = 'explosion-img pixel-art';
-            ex.style.left = `${x}%`; ex.style.top = `${y}%`;
-            ex.innerHTML = `<img src="${THEME.graphics.EXPLOSION}" class="w-full">`;
-            document.getElementById('game-area').appendChild(ex);
-            setTimeout(() => ex.remove(), 800);
-        }
-
-        function nextLevel() {
-            level++; catchesThisLevel = 0; speedMultiplier += 0.2;
-            isCountdownActive = true; countdownValue = 3; countdownTimer = performance.now();
-            document.getElementById('overlay').classList.remove('hidden');
-        }
-
         function endGame() {
             isGameOver = true; isCountdownActive = false; isMissSequence = false;
             cancelAnimationFrame(animationFrameHandle);
-            document.body.classList.remove('playing'); saveScore();
-            
+            document.body.classList.remove('playing'); updateScoreInCloud();
             const area = document.getElementById('game-area'); 
             area.style.backgroundImage = `url('${THEME.graphics.SPLASH}')`;
             document.getElementById('mad-bomber-img').innerHTML = '';
             document.getElementById('buckets-stack').innerHTML = '';
             document.getElementById('hud').classList.add('hidden'); 
             document.getElementById('gunk-overlay').style.opacity = 0;
-            
             const overlay = document.getElementById('overlay');
             overlay.classList.remove('hidden'); overlay.classList.remove('overlay-dark'); 
             document.getElementById('status-message').innerHTML = `
                 <div class="road-stack">
                     <p class="go-title">GAME OVER</p>
                     <p class="go-score">${score.toLocaleString()}</p>
-                    <p class="go-sub">Final Score Recorded</p>
+                    <p class="go-sub" style="font-size: calc(var(--gu)*1); opacity: 0.5; margin-top: 5px; font-weight: bold; letter-spacing: 0.3em;">FINAL SCORE RECORDED</p>
                 </div>
             `;
             const btns = document.getElementById('difficulty-buttons'); btns.innerHTML = '';
             const btn = document.createElement('button'); btn.className = "btn-pill"; btn.textContent = "MAIN MENU"; 
             btn.onclick = (e) => { e.stopPropagation(); showInitialSplash(); }; 
             btns.appendChild(btn);
+            lastInteractionTime = Date.now();
+        }
+
+        function updateStats() { 
+            document.getElementById('score-display').textContent = score.toString().padStart(6, '0'); 
+            document.getElementById('lives-count').textContent = `×${lives}`; 
+            document.getElementById('level-display').textContent = `×${Math.floor(difficultyFactor)} DASH BOOST`; 
+        }
+
+        // --- Standard Feature Preservations ---
+        function checkInactivity() {
+            if (isGameOver && !document.body.classList.contains('playing')) {
+                const now = Date.now();
+                if (now - lastInteractionTime > INACTIVITY_LIMIT) {
+                    const statusMsg = document.getElementById('status-message');
+                    const isSplash = statusMsg.querySelector('.expo-header') !== null;
+                    if (!isSplash) showInitialSplash();
+                }
+            }
+        }
+        setInterval(checkInactivity, 1000);
+
+        function updateInteraction() { lastInteractionTime = Date.now(); }
+
+        async function openAdminPanel() {
+            const panel = document.getElementById('admin-panel');
+            panel.style.display = 'block';
+            const tbody = document.getElementById('admin-tbody');
+            tbody.innerHTML = '<tr><td colspan="3">Fetching leads...</td></tr>';
+            try {
+                const q = collection(db, 'artifacts', appId, 'public', 'data', 'leads');
+                const snap = await getDocs(q);
+                let html = '';
+                let leads = [];
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    leads.push(data);
+                    html += `<tr><td>${data.name}</td><td>${data.company}</td><td>${data.email}</td></tr>`;
+                });
+                tbody.innerHTML = html || '<tr><td colspan="3">No leads captured yet.</td></tr>';
+                window.currentLeads = leads;
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="3">Error loading data.</td></tr>'; }
+        }
+
+        function downloadLeadsCSV() {
+            if (!window.currentLeads || window.currentLeads.length === 0) return;
+            const headers = ['Name', 'Company', 'Email', 'Timestamp'];
+            const rows = window.currentLeads.map(l => [`"${l.name}"`, `"${l.company}"`, `"${l.email}"`, new Date(l.timestamp).toLocaleString()].join(','));
+            const csvContent = [headers.join(','), ...rows].join('\n');
+            try {
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", `expo_leads_${Date.now()}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (e) {
+                const dummy = document.createElement("textarea");
+                document.body.appendChild(dummy); dummy.value = csvContent; dummy.select();
+                document.execCommand("copy"); document.body.removeChild(dummy);
+                showToast("CSV data copied to clipboard!");
+            }
         }
 
         function showInitialSplash() {
             isGameOver = true; isCountdownActive = false; isMissSequence = false;
-            document.body.classList.remove('playing'); 
-            document.getElementById('hud').classList.add('hidden');
-            document.getElementById('mad-bomber-img').innerHTML = ''; 
-            document.getElementById('buckets-stack').innerHTML = '';
+            document.body.classList.remove('playing'); document.getElementById('hud').classList.add('hidden');
+            document.getElementById('mad-bomber-img').innerHTML = ''; document.getElementById('buckets-stack').innerHTML = '';
             bombs.forEach(b => b.el.remove()); bombs = [];
             const overlay = document.getElementById('overlay'); 
             overlay.classList.remove('hidden'); overlay.classList.remove('overlay-dark'); 
@@ -513,43 +583,99 @@
             const btns = document.getElementById('difficulty-buttons'); btns.innerHTML = '';
             const btn = document.createElement('button'); 
             btn.className = "btn-pill shadow-xl"; btn.textContent = "ENTER ARCADE";
-            btn.onclick = (e) => { 
-                e.stopPropagation(); toggleFullscreen();
-                currentPlayer = null; 
-                setTimeout(() => { showRegistration(); }, 100);
-            };
+            btn.onclick = (e) => { e.stopPropagation(); toggleFullscreen(); currentPlayer = null; showRegistration(); };
             btns.appendChild(btn);
+            updateInteraction();
         }
 
-        function showToast(msg) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.style.opacity = '1'; setTimeout(() => { toast.style.opacity = '0'; }, 3000); }
-        function triggerHaptic(ms) { if ("vibrate" in navigator) navigator.vibrate(ms); }
-        function toggleFullscreen() { if (!document.fullscreenEnabled) return; if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(e => {}); } }
-
-        window.toggleFullscreen = toggleFullscreen;
-        window.onload = () => {
-            showInitialSplash();
+        function initGameElements() {
             const area = document.getElementById('game-area');
-            area.addEventListener('mousemove', handleInteraction);
-            area.addEventListener('touchstart', (e) => { if (!isGameOver) { e.preventDefault(); handleInteraction(e); } }, { passive: false });
-            area.addEventListener('touchmove', (e) => { if (!isGameOver) { e.preventDefault(); handleInteraction(e); } }, { passive: false });
-        };
+            area.style.backgroundImage = `url('${THEME.graphics.BACKGROUND}')`;
+            updateBucketVisuals();
+            document.getElementById('mad-bomber-img').style.width = `8%`;
+            document.getElementById('mad-bomber-img').innerHTML = `<img src="${THEME.graphics.BOMBER}" class="pixel-art w-full h-full">`;
+            document.getElementById('life-icon').src = THEME.graphics.BUCKET;
+        }
+
+        function updateBucketVisuals() {
+            const stack = document.getElementById('buckets-stack');
+            stack.style.width = `8%`;
+            stack.innerHTML = '';
+            for (let i = 0; i < lives; i++) {
+                const b = document.createElement('img');
+                b.src = THEME.graphics.BUCKET; b.className = 'bucket-img pixel-art';
+                b.style.height = `6%`; b.style.marginTop = `-1.5%`;
+                stack.appendChild(b);
+            }
+        }
+
+        function updateBombs() {
+            for (let i = bombs.length - 1; i >= 0; i--) {
+                const b = bombs[i]; b.y += b.speed; b.el.style.top = `${b.y}%`;
+                if (b.y > 78 && b.y < 86) { if (Math.abs(b.x - bucketX) < 8 / 1.5) handleCatch(i, b); } 
+                else if (b.y > 95) { if (b.type === 'good') handleMiss(i, b); else { b.el.remove(); bombs.splice(i, 1); } }
+            }
+        }
+
+        function createExplosion(x, y) {
+            const ex = document.createElement('div');
+            ex.className = 'explosion-img pixel-art';
+            ex.style.left = `${x}%`; ex.style.top = `${y}%`;
+            ex.innerHTML = `<img src="${THEME.graphics.EXPLOSION}" class="w-full">`;
+            document.getElementById('game-area').appendChild(ex);
+            setTimeout(() => ex.remove(), 800);
+        }
 
         function handleInteraction(e) {
+            updateInteraction();
             if (isGameOver) return; 
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const rect = document.getElementById('game-area').getBoundingClientRect();
             targetX = ((clientX - rect.left) / rect.width) * 100;
         }
 
-        function updateStats() { 
-            document.getElementById('score-display').textContent = score.toString().padStart(6, '0'); 
-            document.getElementById('lives-count').textContent = `×${lives}`; 
-            document.getElementById('level-display').textContent = `LVL ${level}`; 
+        function showToast(msg) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.style.opacity = '1'; setTimeout(() => { toast.style.opacity = '0'; }, 3000); }
+        function triggerHaptic(ms) { if ("vibrate" in navigator) navigator.vibrate(ms); }
+        function toggleFullscreen() { if (!document.fullscreenEnabled) return; if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(e => {}); } }
+
+        function showFloatingPoints(x, y, text) {
+            const el = document.createElement('div'); el.className = 'absolute font-brand text-yellow-400 font-black pointer-events-none';
+            el.style.left = `${x}%`; el.style.top = `${y}%`; el.style.fontSize = `calc(var(--gu)*2.5)`; el.textContent = text;
+            document.getElementById('game-area').appendChild(el);
+            setTimeout(() => el.remove(), 1000);
         }
+
+        window.closeAdmin = () => document.getElementById('admin-panel').style.display = 'none';
+        window.downloadLeadsCSV = downloadLeadsCSV;
+        window.toggleFullscreen = toggleFullscreen;
+        
+        window.onload = () => {
+            showInitialSplash();
+            const area = document.getElementById('game-area');
+            area.addEventListener('mousemove', handleInteraction);
+            area.addEventListener('touchstart', (e) => { if (!isGameOver) { e.preventDefault(); handleInteraction(e); } }, { passive: false });
+            area.addEventListener('touchmove', (e) => { if (!isGameOver) { e.preventDefault(); handleInteraction(e); } }, { passive: false });
+            window.addEventListener('keydown', updateInteraction);
+            window.addEventListener('input', updateInteraction);
+        };
     </script>
 </head>
 <body>
     <div id="game-container">
+        <div id="admin-panel">
+            <div class="flex justify-between items-center border-b border-gray-700 pb-4">
+                <h1 class="text-2xl font-black text-yellow-500">EXPO LEADS</h1>
+                <div class="flex gap-4">
+                    <button onclick="downloadLeadsCSV()" class="bg-blue-600 px-4 py-2 rounded font-bold uppercase text-xs">Export CSV</button>
+                    <button onclick="closeAdmin()" class="bg-red-600 px-4 py-2 rounded font-bold uppercase text-xs">Close</button>
+                </div>
+            </div>
+            <table class="admin-table">
+                <thead><tr><th>Name</th><th>Company</th><th>Email</th></tr></thead>
+                <tbody id="admin-tbody"></tbody>
+            </table>
+        </div>
+
         <div id="toast">Required fields empty!</div>
         <div id="hud" class="w-full bg-slate-950 border-b-4 border-slate-900 p-2 z-20 flex justify-between items-center hidden">
             <div class="flex flex-col text-left">
@@ -558,16 +684,16 @@
             </div>
             <div class="flex gap-12 items-center">
                 <div class="flex flex-col items-center">
-                    <span id="level-display" class="hud-sub font-black text-yellow-500 uppercase">Sector 01</span>
+                    <span id="level-display" class="hud-sub font-black text-yellow-500 uppercase">×1 DASH BOOST</span>
                     <div class="flex items-center gap-2 mt-1">
-                        <img id="life-icon" src="" class="hud-icon object-contain pixel-art">
+                        <img id="life-icon" src="" class="w-[calc(var(--gu)*3.5)] h-auto pixel-art">
                         <span id="lives-count" class="hud-text text-white font-black">×3</span>
                     </div>
                 </div>
             </div>
         </div>
         <div id="game-area">
-            <div id="gunk-overlay" class="absolute top-0 left-0 w-full h-full bg-green-500 opacity-0 pointer-events-none z-150"></div>
+            <div id="gunk-overlay"></div>
             <div id="mad-bomber-img" class="mad-bomber-img"></div>
             <div id="buckets-stack" class="bucket-stack"></div>
             <div id="overlay" class="game-status-overlay">
@@ -578,4 +704,3 @@
     </div>
 </body>
 </html>
-
