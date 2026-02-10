@@ -186,30 +186,39 @@
             opacity: 0;
         }
 
-        /* Responsive Character Container */
-        .mad-bomber-img { 
+        /* Responsive Character Containers */
+        .character-container { 
             position: absolute; 
-            top: 0; 
             z-index: 100; 
             transform: translateX(-50%); 
-            width: calc(var(--gu) * 12.135); 
-            aspect-ratio: 466 / 415;
             display: flex;
-            align-items: flex-start;
             justify-content: center;
             pointer-events: none;
         }
-        .mad-bomber-img img {
+        .character-container img {
             width: 100% !important;
             height: 100% !important;
             display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
         }
 
-        .bucket-stack { position: absolute; display: flex; flex-direction: column-reverse; align-items: center; z-index: 90; transform: translateX(-50%); bottom: 5%; will-change: left; }
-        .bucket-img { object-fit: contain; width: 100%; height: 100%; }
+        /* Chef specific sizing (466x415 base) reduced 50% */
+        #mad-bomber-img { 
+            top: 0; 
+            width: calc(var(--gu) * 12.135); 
+            aspect-ratio: 466 / 415;
+            align-items: flex-start;
+        }
+
+        /* Waitress specific sizing (757x415 base) reduced 50% */
+        #waitress-container { 
+            bottom: 0; 
+            z-index: 90;
+            width: calc(var(--gu) * 19.7135); 
+            aspect-ratio: 757 / 415;
+            align-items: flex-end;
+            will-change: left;
+        }
+
         .bomb-img { position: absolute; z-index: 50; transform: translateX(-50%); }
         .explosion-img { position: absolute; z-index: 200; pointer-events: none; transform: translate(-50%, -50%); width: calc(var(--gu) * 15); }
 
@@ -241,6 +250,7 @@
         const THEME = {
             graphics: {
                 BOMBER: ASSETS_PATH + '50s-chef.svg',
+                WAITRESS: ASSETS_PATH + '50s-waitress.svg',
                 FOOD_ITEMS: [
                     { file: '50s-fries.svg', value: 10 },
                     { file: '50s-shake.svg', value: 25 },
@@ -279,13 +289,17 @@
         let lastInteractionTime = Date.now();
         const INACTIVITY_LIMIT = 20000; 
 
-        // Character Meta (466x415 base)
+        // Character Meta Constants
         const CHEF_WIDTH_GU = 12.135;
-        const TRAY_LEFT_PCT = 0.0;     
-        const TRAY_WIDTH_PCT = 41.84;  
-        const TRAY_TOP_PCT = 76.6;     
+        const CHEF_TRAY_TOP_PCT = 76.6;     
+        
+        // Waitress Meta (757x415 base reduced 50%)
+        const WAITRESS_WIDTH_GU = 19.7135;
+        const WAITRESS_TRAY_X_PCT = (347 / 757) * 100; // Left-hand side X coord relative to image
+        const WAITRESS_TRAY_Y_PCT = (107 / 415) * 100; // Top edge Y coord relative to image
+        const WAITRESS_TRAY_WIDTH_PCT = ((195 * 2) / 757) * 100; // Doubled width logic
 
-        let nextQueuedItem = null; // Stores data for the item sitting on the tray
+        let nextQueuedItem = null; 
 
         async function fetchLeaderboards() {
             if (!db) return;
@@ -348,9 +362,7 @@
             madBomberX = 50; bucketX = 50; targetX = 50; gunkTimeRemaining = 0;
             bombs.forEach(b => b.el.remove()); bombs = [];
             
-            // Generate the first item that starts on the tray
             rollNextItem();
-            
             initGameElements();
             updateStats();
             const overlay = document.getElementById('overlay');
@@ -429,8 +441,25 @@
 
             const lerp = gunkTimeRemaining > 0 ? 0.08 : 0.4; 
             bucketX = bucketX + (targetX - bucketX) * lerp; 
-            bucketX = Math.max(4, Math.min(bucketX, 96));
-            document.getElementById('buckets-stack').style.left = `${bucketX}%`;
+            
+            /* DYNAMIC BOUNDARY CALCULATION:
+              Allow waitress to go off-screen until the TRAY left edge hits the SCREEN left edge.
+              Waitress Center point when tray left edge is at 0:
+              CenterGU = Screen0 + HalfWidth - TrayOffsetFromLeftEdge
+            */
+            const waitressHalfWidth = 50 * (WAITRESS_WIDTH_GU / 100); // GU converted to stage relative if needed, but Gu is % already.
+            const minX = (347 / 757) * WAITRESS_WIDTH_GU; 
+            // Correct logic: Waitress center is at 'bucketX'. Waitress left edge is 'bucketX - (WAITRESS_WIDTH_GU/2)'.
+            // Tray left edge is 'waitressLeftEdge + (WAITRESS_WIDTH_GU * 347/757)'.
+            // Set trayLeftEdge = 0 => bucketX - 9.85 + 9.03 = 0 => bucketX = 0.82.
+            const trayLeftOffsetFromWaitressCenter = (347 / 757 - 0.5) * WAITRESS_WIDTH_GU; // -0.822
+            const calculatedMinX = -trayLeftOffsetFromWaitressCenter; // 0.822
+
+            const trayRightOffsetFromWaitressCenter = ((347 + 390) / 757 - 0.5) * WAITRESS_WIDTH_GU; // 9.33
+            const calculatedMaxX = 100 - trayRightOffsetFromWaitressCenter; // 90.67
+
+            bucketX = Math.max(calculatedMinX, Math.min(bucketX, calculatedMaxX));
+            document.getElementById('waitress-container').style.left = `${bucketX}%`;
 
             if (isMissSequence) {
                 if (frame % 12 === 0 && bombs.length > 0) {
@@ -475,19 +504,15 @@
             
             const dropRate = Math.max(15, 80 / Math.sqrt(difficultyFactor));
             if (frame % Math.floor(dropRate) === 0) {
-                // Drop the item currently on the tray
                 const offsetFromChefCenter = (CHEF_WIDTH_GU * -0.2908);
                 const spawnX = madBomberX + offsetFromChefCenter;
 
                 const chefHeightStagePct = (CHEF_WIDTH_GU * 0.8905) / 56.25 * 100;
-                const trayTopStagePct = chefHeightStagePct * 0.766;
+                const chefTrayTopStagePct = chefHeightStagePct * 0.766;
                 const foodHeightStagePct = (5 / 56.25) * 100;
-                const spawnY = trayTopStagePct - foodHeightStagePct;
+                const spawnY = chefTrayTopStagePct - foodHeightStagePct;
 
-                // Launch falling bomb
                 createFallingBomb(spawnX, spawnY, nextQueuedItem);
-
-                // Instantly queue next item visually on tray
                 rollNextItem();
             }
         }
@@ -506,6 +531,37 @@
             });
         }
 
+        function updateBombs() {
+            for (let i = bombs.length - 1; i >= 0; i--) {
+                const b = bombs[i]; 
+                b.y += b.speed; 
+                b.el.style.top = `${b.y}%`;
+                
+                // Waitress collision logic
+                const stageHeightGU = 56.25;
+                const waitressHeightGU = WAITRESS_WIDTH_GU * 0.548;
+                const waitressHeightStagePct = (waitressHeightGU / stageHeightGU) * 100;
+                const trayTopStagePct = 100 - (waitressHeightStagePct * (1 - (107 / 415))); 
+                
+                const waitressLeftEdge = bucketX - (WAITRESS_WIDTH_GU / 2);
+                const trayLeftX = waitressLeftEdge + (WAITRESS_WIDTH_GU * (347 / 757));
+                const trayRightX = trayLeftX + (WAITRESS_WIDTH_GU * ((195 * 2) / 757));
+
+                // Collision range check
+                if (b.y > (trayTopStagePct - 4) && b.y < (trayTopStagePct + 2)) {
+                    if (b.x > (trayLeftX - 1) && b.x < (trayRightX + 1)) {
+                        handleCatch(i, b);
+                        continue;
+                    }
+                }
+
+                if (b.y > 98) {
+                    if (b.type === 'good') handleMiss(i, b);
+                    else { b.el.remove(); bombs.splice(i, 1); }
+                }
+            }
+        }
+
         function handleCatch(idx, b) {
             if (b.type === 'slime') { gunkTimeRemaining = 3000; triggerHaptic(100); } 
             else {
@@ -522,7 +578,7 @@
         function handleMiss(idx, b) {
             if (isMissSequence) return;
             isMissSequence = true; triggerHaptic(300); lives--;
-            updateBucketVisuals(); updateStats();
+            updateStats();
             createExplosion(b.x, 90);
             b.el.remove(); bombs.splice(idx, 1);
         }
@@ -534,7 +590,7 @@
             const area = document.getElementById('game-area'); 
             area.style.backgroundImage = `url('${THEME.graphics.SPLASH}')`;
             document.getElementById('mad-bomber-img').innerHTML = '';
-            document.getElementById('buckets-stack').innerHTML = '';
+            document.getElementById('waitress-container').innerHTML = '';
             document.getElementById('hud').classList.add('hidden'); 
             document.getElementById('gunk-overlay').style.opacity = 0;
             const overlay = document.getElementById('overlay');
@@ -554,9 +610,19 @@
         }
 
         function updateStats() { 
-            document.getElementById('score-display').textContent = score.toString().padStart(6, '0'); 
-            document.getElementById('lives-count').textContent = `×${lives}`; 
-            document.getElementById('level-display').textContent = `×${Math.floor(difficultyFactor)} DASH BOOST`; 
+            const scoreDisplay = document.getElementById('score-display');
+            if (scoreDisplay) scoreDisplay.textContent = score.toString().padStart(6, '0'); 
+            const livesDisplay = document.getElementById('lives-count');
+            if (livesDisplay) livesDisplay.textContent = `×${lives}`; 
+            const levelDisplay = document.getElementById('level-display');
+            if (levelDisplay) levelDisplay.textContent = `×${Math.floor(difficultyFactor)} DASH BOOST`; 
+        }
+
+        function showFloatingPoints(x, y, text) {
+            const el = document.createElement('div'); el.className = 'absolute font-brand text-yellow-400 font-black pointer-events-none';
+            el.style.left = `${x}%`; el.style.top = `${y}%`; el.style.fontSize = `calc(var(--gu)*2.5)`; el.textContent = text;
+            document.getElementById('game-area').appendChild(el);
+            setTimeout(() => el.remove(), 1000);
         }
 
         function checkInactivity() {
@@ -618,7 +684,7 @@
         function showInitialSplash() {
             isGameOver = true; isCountdownActive = false; isMissSequence = false;
             document.body.classList.remove('playing'); document.getElementById('hud').classList.add('hidden');
-            document.getElementById('mad-bomber-img').innerHTML = ''; document.getElementById('buckets-stack').innerHTML = '';
+            document.getElementById('mad-bomber-img').innerHTML = ''; document.getElementById('waitress-container').innerHTML = '';
             bombs.forEach(b => b.el.remove()); bombs = [];
             const overlay = document.getElementById('overlay'); 
             overlay.classList.remove('hidden'); overlay.classList.remove('overlay-dark'); 
@@ -642,18 +708,13 @@
         function initGameElements() {
             const area = document.getElementById('game-area');
             area.style.backgroundImage = `url('${THEME.graphics.BACKGROUND}')`;
-            updateBucketVisuals();
-            const chefContainer = document.getElementById('mad-bomber-img');
             
-            /* TRAY RENDERING:
-               - The Chef character (absolute)
-               - The "Next Item" ready on his tray (positioned within his container)
-            */
+            const chefContainer = document.getElementById('mad-bomber-img');
             chefContainer.innerHTML = `
                 <img src="${THEME.graphics.BOMBER}" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;">
                 <div id="tray-food-container" style="
                     position: absolute;
-                    top: ${TRAY_TOP_PCT}%;
+                    top: ${CHEF_TRAY_TOP_PCT}%;
                     left: 20.92%; 
                     width: 41.2%; 
                     aspect-ratio: 1/1;
@@ -666,27 +727,11 @@
                     <img id="tray-food-ready" src="${nextQueuedItem ? nextQueuedItem.imgSrc : ''}" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
             `;
+
+            const waitressContainer = document.getElementById('waitress-container');
+            waitressContainer.innerHTML = `<img src="${THEME.graphics.WAITRESS}" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;">`;
+            
             document.getElementById('life-icon').src = THEME.graphics.BUCKET;
-        }
-
-        function updateBucketVisuals() {
-            const stack = document.getElementById('buckets-stack');
-            stack.style.width = `8%`;
-            stack.innerHTML = '';
-            for (let i = 0; i < lives; i++) {
-                const b = document.createElement('img');
-                b.src = THEME.graphics.BUCKET; b.className = 'bucket-img pixel-art';
-                b.style.height = `6%`; b.style.marginTop = `-1.5%`;
-                stack.appendChild(b);
-            }
-        }
-
-        function updateBombs() {
-            for (let i = bombs.length - 1; i >= 0; i--) {
-                const b = bombs[i]; b.y += b.speed; b.el.style.top = `${b.y}%`;
-                if (b.y > 78 && b.y < 86) { if (Math.abs(b.x - bucketX) < 8 / 1.5) handleCatch(i, b); } 
-                else if (b.y > 95) { if (b.type === 'good') handleMiss(i, b); else { b.el.remove(); bombs.splice(i, 1); } }
-            }
         }
 
         function createExplosion(x, y) {
@@ -709,13 +754,6 @@
         function showToast(msg) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.style.opacity = '1'; setTimeout(() => { toast.style.opacity = '0'; }, 3000); }
         function triggerHaptic(ms) { if ("vibrate" in navigator) navigator.vibrate(ms); }
         function toggleFullscreen() { if (!document.fullscreenEnabled) return; if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(e => {}); } }
-
-        function showFloatingPoints(x, y, text) {
-            const el = document.createElement('div'); el.className = 'absolute font-brand text-yellow-400 font-black pointer-events-none';
-            el.style.left = `${x}%`; el.style.top = `${y}%`; el.style.fontSize = `calc(var(--gu)*2.5)`; el.textContent = text;
-            document.getElementById('game-area').appendChild(el);
-            setTimeout(() => el.remove(), 1000);
-        }
 
         window.closeAdmin = () => document.getElementById('admin-panel').style.display = 'none';
         window.downloadLeadsCSV = downloadLeadsCSV;
@@ -768,8 +806,9 @@
             </div>
 
             <div id="gunk-overlay"></div>
-            <div id="mad-bomber-img" class="mad-bomber-img"></div>
-            <div id="buckets-stack" class="bucket-stack"></div>
+            <div id="mad-bomber-img" class="character-container"></div>
+            <div id="waitress-container" class="character-container"></div>
+            
             <div id="overlay" class="game-status-overlay">
                 <div id="status-message" class="w-full flex flex-col items-center"></div>
                 <div id="difficulty-buttons" class="w-full flex flex-col items-center justify-center"></div>
