@@ -155,7 +155,7 @@
             margin-bottom: calc(var(--gu) * 0.5);
         }
 
-        /* --- HUD (Overlay Version) --- */
+        /* --- HUD --- */
         #hud { position: absolute; top: 0; left: 0; width: 100%; padding: calc(var(--gu) * 1.5); z-index: 500; pointer-events: none; }
         .hud-text { font-size: calc(var(--gu) * 2.2); text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
         .hud-sub { font-size: calc(var(--gu) * 0.9); text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
@@ -186,7 +186,28 @@
             opacity: 0;
         }
 
-        .mad-bomber-img { position: absolute; top: 0%; z-index: 100; transform: translateX(-50%); }
+        /* Responsive Character Container */
+        .mad-bomber-img { 
+            position: absolute; 
+            top: 0; 
+            z-index: 100; 
+            transform: translateX(-50%); 
+            width: calc(var(--gu) * 12.135); 
+            aspect-ratio: 466 / 415;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            pointer-events: none;
+        }
+        .mad-bomber-img img {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
         .bucket-stack { position: absolute; display: flex; flex-direction: column-reverse; align-items: center; z-index: 90; transform: translateX(-50%); bottom: 5%; will-change: left; }
         .bucket-img { object-fit: contain; width: 100%; height: 100%; }
         .bomb-img { position: absolute; z-index: 50; transform: translateX(-50%); }
@@ -219,7 +240,7 @@
         const ASSETS_PATH = "https://kevindkeene.github.io/diner_dash/assets/";
         const THEME = {
             graphics: {
-                BOMBER: ASSETS_PATH + 'bomber336x800.gif',
+                BOMBER: ASSETS_PATH + '50s-chef.svg',
                 FOOD_ITEMS: [
                     { file: '50s-fries.svg', value: 10 },
                     { file: '50s-shake.svg', value: 25 },
@@ -257,6 +278,14 @@
         let countdownTimer = 0, countdownValue = 5, adminClicks = 0;
         let lastInteractionTime = Date.now();
         const INACTIVITY_LIMIT = 20000; 
+
+        // Character Meta (466x415 base)
+        const CHEF_WIDTH_GU = 12.135;
+        const TRAY_LEFT_PCT = 0.0;     
+        const TRAY_WIDTH_PCT = 41.84;  
+        const TRAY_TOP_PCT = 76.6;     
+
+        let nextQueuedItem = null; // Stores data for the item sitting on the tray
 
         async function fetchLeaderboards() {
             if (!db) return;
@@ -318,6 +347,10 @@
             score = 0; lives = 3; frame = 0; totalItemsCaught = 0; difficultyFactor = 1;
             madBomberX = 50; bucketX = 50; targetX = 50; gunkTimeRemaining = 0;
             bombs.forEach(b => b.el.remove()); bombs = [];
+            
+            // Generate the first item that starts on the tray
+            rollNextItem();
+            
             initGameElements();
             updateStats();
             const overlay = document.getElementById('overlay');
@@ -325,6 +358,22 @@
             document.getElementById('difficulty-buttons').innerHTML = ''; 
             cancelAnimationFrame(animationFrameHandle);
             gameLoop();
+        }
+
+        function rollNextItem() {
+            const isSlime = Math.random() < 0.1;
+            if (isSlime) {
+                nextQueuedItem = { type: 'slime', imgSrc: THEME.graphics.SLIME, value: 0 };
+            } else {
+                const rand = Math.random();
+                let food = rand < 0.2 ? THEME.graphics.FOOD_ITEMS[2] : (rand < 0.5 ? THEME.graphics.FOOD_ITEMS[1] : THEME.graphics.FOOD_ITEMS[0]);
+                nextQueuedItem = { type: 'good', imgSrc: ASSETS_PATH + food.file, value: food.value };
+            }
+            
+            const trayImg = document.getElementById('tray-food-ready');
+            if (trayImg) {
+                trayImg.src = nextQueuedItem.imgSrc;
+            }
         }
 
         function showRegistration() {
@@ -376,7 +425,6 @@
             if (isGameOver) return;
             frame++;
 
-            // Global Difficulty Scaling: Multiplier grows by 0.05 every item caught
             difficultyFactor = 1 + (totalItemsCaught * 0.05);
 
             const lerp = gunkTimeRemaining > 0 ? 0.08 : 0.4; 
@@ -421,31 +469,39 @@
             const base = (1.0) * difficultyFactor;
             if (Math.random() < 0.04) madBomberDirection *= -1;
             madBomberX += madBomberDirection * base;
-            if (madBomberX > 94) madBomberDirection = -1; else if (madBomberX < 6) madBomberDirection = 1;
+            
+            if (madBomberX > 93.9) madBomberDirection = -1; else if (madBomberX < 6.1) madBomberDirection = 1;
             document.getElementById('mad-bomber-img').style.left = `${madBomberX}%`;
             
             const dropRate = Math.max(15, 80 / Math.sqrt(difficultyFactor));
             if (frame % Math.floor(dropRate) === 0) {
-                if (Math.random() < 0.1) createBomb(madBomberX, 10, 'slime'); 
-                else {
-                    const rand = Math.random();
-                    let food = rand < 0.2 ? THEME.graphics.FOOD_ITEMS[2] : (rand < 0.5 ? THEME.graphics.FOOD_ITEMS[1] : THEME.graphics.FOOD_ITEMS[0]);
-                    createBomb(madBomberX, 10, 'good', food);
-                }
+                // Drop the item currently on the tray
+                const offsetFromChefCenter = (CHEF_WIDTH_GU * -0.2908);
+                const spawnX = madBomberX + offsetFromChefCenter;
+
+                const chefHeightStagePct = (CHEF_WIDTH_GU * 0.8905) / 56.25 * 100;
+                const trayTopStagePct = chefHeightStagePct * 0.766;
+                const foodHeightStagePct = (5 / 56.25) * 100;
+                const spawnY = trayTopStagePct - foodHeightStagePct;
+
+                // Launch falling bomb
+                createFallingBomb(spawnX, spawnY, nextQueuedItem);
+
+                // Instantly queue next item visually on tray
+                rollNextItem();
             }
         }
 
-        function createBomb(x, y, type, foodData = null) {
+        function createFallingBomb(x, y, data) {
             const el = document.createElement('div');
             el.className = 'bomb-img absolute';
             el.style.width = `5%`; el.style.left = `${x}%`; el.style.top = `${y}%`;
-            let imgSrc = type === 'slime' ? THEME.graphics.SLIME : (foodData ? ASSETS_PATH + foodData.file : ASSETS_PATH + THEME.graphics.FOOD_ITEMS[0].file);
-            el.innerHTML = `<img src="${imgSrc}" class="w-full h-full object-contain">`;
+            el.innerHTML = `<img src="${data.imgSrc}" style="width: 100%; height: 100%; object-fit: contain;">`;
             document.getElementById('game-area').appendChild(el);
             
             bombs.push({ 
-                x, y, el, type, 
-                value: (foodData ? foodData.value : 10), 
+                x, y, el, type: data.type, 
+                value: data.value, 
                 speed: (1.2) * Math.sqrt(difficultyFactor) 
             });
         }
@@ -503,7 +559,6 @@
             document.getElementById('level-display').textContent = `×${Math.floor(difficultyFactor)} DASH BOOST`; 
         }
 
-        // --- Standard Feature Preservations ---
         function checkInactivity() {
             if (isGameOver && !document.body.classList.contains('playing')) {
                 const now = Date.now();
@@ -588,8 +643,29 @@
             const area = document.getElementById('game-area');
             area.style.backgroundImage = `url('${THEME.graphics.BACKGROUND}')`;
             updateBucketVisuals();
-            document.getElementById('mad-bomber-img').style.width = `8%`;
-            document.getElementById('mad-bomber-img').innerHTML = `<img src="${THEME.graphics.BOMBER}" class="pixel-art w-full h-full">`;
+            const chefContainer = document.getElementById('mad-bomber-img');
+            
+            /* TRAY RENDERING:
+               - The Chef character (absolute)
+               - The "Next Item" ready on his tray (positioned within his container)
+            */
+            chefContainer.innerHTML = `
+                <img src="${THEME.graphics.BOMBER}" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;">
+                <div id="tray-food-container" style="
+                    position: absolute;
+                    top: ${TRAY_TOP_PCT}%;
+                    left: 20.92%; 
+                    width: 41.2%; 
+                    aspect-ratio: 1/1;
+                    transform: translate(-50%, -100%);
+                    z-index: 101;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <img id="tray-food-ready" src="${nextQueuedItem ? nextQueuedItem.imgSrc : ''}" style="width: 100%; height: 100%; object-fit: contain;">
+                </div>
+            `;
             document.getElementById('life-icon').src = THEME.graphics.BUCKET;
         }
 
@@ -659,7 +735,7 @@
 <body>
     <div id="game-container">
         <div id="admin-panel">
-            <div class="flex justify-between items-center border-b border-gray-700 pb-4">
+            <div class="flex justify-between items-center border-gray-700 pb-4">
                 <h1 class="text-2xl font-black text-yellow-500">EXPO LEADS</h1>
                 <div class="flex gap-4">
                     <button onclick="downloadLeadsCSV()" class="bg-blue-600 px-4 py-2 rounded font-bold uppercase text-xs">Export CSV</button>
@@ -675,7 +751,6 @@
         <div id="toast">Required fields empty!</div>
         
         <div id="game-area">
-            <!-- HUD is now an absolute overlay inside the game area -->
             <div id="hud" class="flex justify-between items-start hidden">
                 <div class="flex flex-col text-left" id="admin-trigger">
                     <span class="hud-sub text-white/50 font-black uppercase tracking-widest">Global Ranking System</span>
