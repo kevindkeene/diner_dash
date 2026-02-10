@@ -155,10 +155,10 @@
             margin-bottom: calc(var(--gu) * 0.5);
         }
 
-        /* --- HUD --- */
-        #hud { background-color: #020617; border-bottom: calc(var(--gu) * 0.4) solid #1e293b; padding: calc(var(--gu) * 1); z-index: 500; }
-        .hud-text { font-size: calc(var(--gu) * 2.2); }
-        .hud-sub { font-size: calc(var(--gu) * 0.9); }
+        /* --- HUD (Overlay Version) --- */
+        #hud { position: absolute; top: 0; left: 0; width: 100%; padding: calc(var(--gu) * 1.5); z-index: 500; pointer-events: none; }
+        .hud-text { font-size: calc(var(--gu) * 2.2); text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .hud-sub { font-size: calc(var(--gu) * 0.9); text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
 
         /* --- ADMIN DASHBOARD --- */
         #admin-panel {
@@ -186,7 +186,7 @@
             opacity: 0;
         }
 
-        .mad-bomber-img { position: absolute; top: 2%; z-index: 100; transform: translateX(-50%); }
+        .mad-bomber-img { position: absolute; top: 0%; z-index: 100; transform: translateX(-50%); }
         .bucket-stack { position: absolute; display: flex; flex-direction: column-reverse; align-items: center; z-index: 90; transform: translateX(-50%); bottom: 5%; will-change: left; }
         .bucket-img { object-fit: contain; width: 100%; height: 100%; }
         .bomb-img { position: absolute; z-index: 50; transform: translateX(-50%); }
@@ -418,14 +418,12 @@
         }
 
         function updateBomber() {
-            // Speed up based on difficulty factor
             const base = (1.0) * difficultyFactor;
             if (Math.random() < 0.04) madBomberDirection *= -1;
             madBomberX += madBomberDirection * base;
             if (madBomberX > 94) madBomberDirection = -1; else if (madBomberX < 6) madBomberDirection = 1;
             document.getElementById('mad-bomber-img').style.left = `${madBomberX}%`;
             
-            // Speed up drop rate (min 15 frames)
             const dropRate = Math.max(15, 80 / Math.sqrt(difficultyFactor));
             if (frame % Math.floor(dropRate) === 0) {
                 if (Math.random() < 0.1) createBomb(madBomberX, 10, 'slime'); 
@@ -445,7 +443,6 @@
             el.innerHTML = `<img src="${imgSrc}" class="w-full h-full object-contain">`;
             document.getElementById('game-area').appendChild(el);
             
-            // Fall speed increases with difficulty
             bombs.push({ 
                 x, y, el, type, 
                 value: (foodData ? foodData.value : 10), 
@@ -456,7 +453,6 @@
         function handleCatch(idx, b) {
             if (b.type === 'slime') { gunkTimeRemaining = 3000; triggerHaptic(100); } 
             else {
-                // Points scale with the integer part of difficultyFactor
                 const multiplier = Math.floor(difficultyFactor);
                 const points = b.value * multiplier; 
                 score += points; 
@@ -677,22 +673,25 @@
         </div>
 
         <div id="toast">Required fields empty!</div>
-        <div id="hud" class="w-full bg-slate-950 border-b-4 border-slate-900 p-2 z-20 flex justify-between items-center hidden">
-            <div class="flex flex-col text-left">
-                <span class="hud-sub text-slate-500 font-black uppercase tracking-widest">Global Ranking System</span>
-                <span id="score-display" class="hud-text font-mono font-black leading-none" style="color: #ffbf47">000000</span>
-            </div>
-            <div class="flex gap-12 items-center">
-                <div class="flex flex-col items-center">
-                    <span id="level-display" class="hud-sub font-black text-yellow-500 uppercase">×1 DASH BOOST</span>
-                    <div class="flex items-center gap-2 mt-1">
-                        <img id="life-icon" src="" class="w-[calc(var(--gu)*3.5)] h-auto pixel-art">
-                        <span id="lives-count" class="hud-text text-white font-black">×3</span>
+        
+        <div id="game-area">
+            <!-- HUD is now an absolute overlay inside the game area -->
+            <div id="hud" class="flex justify-between items-start hidden">
+                <div class="flex flex-col text-left" id="admin-trigger">
+                    <span class="hud-sub text-white/50 font-black uppercase tracking-widest">Global Ranking System</span>
+                    <span id="score-display" class="hud-text font-mono font-black leading-none" style="color: #ffbf47">000000</span>
+                </div>
+                <div class="flex gap-8 items-start">
+                    <div class="flex flex-col items-end">
+                        <span id="level-display" class="hud-sub font-black text-yellow-500 uppercase">×1 DASH BOOST</span>
+                        <div class="flex items-center gap-2 mt-1">
+                            <img id="life-icon" src="https://kevindkeene.github.io/diner_dash/assets/bucket.gif" class="w-[calc(var(--gu)*3.5)] h-auto pixel-art">
+                            <span id="lives-count" class="hud-text text-white font-black">×3</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div id="game-area">
+
             <div id="gunk-overlay"></div>
             <div id="mad-bomber-img" class="mad-bomber-img"></div>
             <div id="buckets-stack" class="bucket-stack"></div>
