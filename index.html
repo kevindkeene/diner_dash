@@ -222,6 +222,22 @@
         .bomb-img { position: absolute; z-index: 50; transform: translateX(-50%); }
         .explosion-img { position: absolute; z-index: 200; pointer-events: none; transform: translate(-50%, -50%); width: calc(var(--gu) * 15); }
 
+        /* Point indicator animation */
+        @keyframes riseAndFade {
+            0% { transform: translate(-50%, 0); opacity: 1; }
+            100% { transform: translate(-50%, calc(var(--gu) * -8)); opacity: 0; }
+        }
+        .floating-points {
+            position: absolute;
+            font-family: 'Bungee', cursive;
+            color: #fbbf24;
+            font-weight: 900;
+            pointer-events: none;
+            z-index: 600;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            animation: riseAndFade 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
         #toast {
             position: absolute;
             bottom: 5%; left: 50%;
@@ -295,9 +311,9 @@
         
         // Waitress Meta (757x415 base reduced 50%)
         const WAITRESS_WIDTH_GU = 19.7135;
-        const WAITRESS_TRAY_X_PCT = (347 / 757) * 100; // Left-hand side X coord relative to image
-        const WAITRESS_TRAY_Y_PCT = (107 / 415) * 100; // Top edge Y coord relative to image
-        const WAITRESS_TRAY_WIDTH_PCT = ((195 * 2) / 757) * 100; // Doubled width logic
+        const WAITRESS_TRAY_X_PCT = (347 / 757) * 100;
+        const WAITRESS_TRAY_Y_PCT = (107 / 415) * 100;
+        const WAITRESS_TRAY_WIDTH_PCT = ((195 * 2) / 757) * 100;
 
         let nextQueuedItem = null; 
 
@@ -442,21 +458,8 @@
             const lerp = gunkTimeRemaining > 0 ? 0.08 : 0.4; 
             bucketX = bucketX + (targetX - bucketX) * lerp; 
             
-            /* DYNAMIC BOUNDARY CALCULATION:
-              Allow waitress to go off-screen until the TRAY left edge hits the SCREEN left edge.
-              Waitress Center point when tray left edge is at 0:
-              CenterGU = Screen0 + HalfWidth - TrayOffsetFromLeftEdge
-            */
-            const waitressHalfWidth = 50 * (WAITRESS_WIDTH_GU / 100); // GU converted to stage relative if needed, but Gu is % already.
-            const minX = (347 / 757) * WAITRESS_WIDTH_GU; 
-            // Correct logic: Waitress center is at 'bucketX'. Waitress left edge is 'bucketX - (WAITRESS_WIDTH_GU/2)'.
-            // Tray left edge is 'waitressLeftEdge + (WAITRESS_WIDTH_GU * 347/757)'.
-            // Set trayLeftEdge = 0 => bucketX - 9.85 + 9.03 = 0 => bucketX = 0.82.
-            const trayLeftOffsetFromWaitressCenter = (347 / 757 - 0.5) * WAITRESS_WIDTH_GU; // -0.822
-            const calculatedMinX = -trayLeftOffsetFromWaitressCenter; // 0.822
-
-            const trayRightOffsetFromWaitressCenter = ((347 + 390) / 757 - 0.5) * WAITRESS_WIDTH_GU; // 9.33
-            const calculatedMaxX = 100 - trayRightOffsetFromWaitressCenter; // 90.67
+            const calculatedMinX = -((347 / 757 - 0.5) * WAITRESS_WIDTH_GU);
+            const calculatedMaxX = 100 - (((347 + 390) / 757 - 0.5) * WAITRESS_WIDTH_GU);
 
             bucketX = Math.max(calculatedMinX, Math.min(bucketX, calculatedMaxX));
             document.getElementById('waitress-container').style.left = `${bucketX}%`;
@@ -537,20 +540,28 @@
                 b.y += b.speed; 
                 b.el.style.top = `${b.y}%`;
                 
-                // Waitress collision logic
+                // --- PIXEL-PERFECT COLLISION ENGINE ---
                 const stageHeightGU = 56.25;
-                const waitressHeightGU = WAITRESS_WIDTH_GU * 0.548;
+                const waitressHeightGU = WAITRESS_WIDTH_GU * (415 / 757);
                 const waitressHeightStagePct = (waitressHeightGU / stageHeightGU) * 100;
+                
+                // Tray top edge relative to game stage (0-100)
                 const trayTopStagePct = 100 - (waitressHeightStagePct * (1 - (107 / 415))); 
                 
+                // Food Height (relative to stage width, converted to stage height pct)
+                const foodHeightStagePct = (5 / stageHeightGU) * 100;
+                
+                // Calculate food bottom-most edge
+                const foodBottomEdge = b.y + foodHeightStagePct;
+
                 const waitressLeftEdge = bucketX - (WAITRESS_WIDTH_GU / 2);
                 const trayLeftX = waitressLeftEdge + (WAITRESS_WIDTH_GU * (347 / 757));
                 const trayRightX = trayLeftX + (WAITRESS_WIDTH_GU * ((195 * 2) / 757));
 
-                // Collision range check
-                if (b.y > (trayTopStagePct - 4) && b.y < (trayTopStagePct + 2)) {
+                // Contact check: Food bottom edge crosses tray top edge
+                if (foodBottomEdge >= trayTopStagePct && b.y < trayTopStagePct) {
                     if (b.x > (trayLeftX - 1) && b.x < (trayRightX + 1)) {
-                        handleCatch(i, b);
+                        handleCatch(i, b, trayTopStagePct);
                         continue;
                     }
                 }
@@ -562,7 +573,7 @@
             }
         }
 
-        function handleCatch(idx, b) {
+        function handleCatch(idx, b, trayY) {
             if (b.type === 'slime') { gunkTimeRemaining = 3000; triggerHaptic(100); } 
             else {
                 const multiplier = Math.floor(difficultyFactor);
@@ -570,7 +581,7 @@
                 score += points; 
                 totalItemsCaught++;
                 triggerHaptic(20);
-                showFloatingPoints(b.x, 82, `+${points}`);
+                showFloatingPoints(b.x, trayY, `+${points}`);
             }
             b.el.remove(); bombs.splice(idx, 1); updateStats();
         }
@@ -619,8 +630,12 @@
         }
 
         function showFloatingPoints(x, y, text) {
-            const el = document.createElement('div'); el.className = 'absolute font-brand text-yellow-400 font-black pointer-events-none';
-            el.style.left = `${x}%`; el.style.top = `${y}%`; el.style.fontSize = `calc(var(--gu)*2.5)`; el.textContent = text;
+            const el = document.createElement('div'); 
+            el.className = 'floating-points';
+            el.style.left = `${x}%`; 
+            el.style.top = `${y}%`; 
+            el.style.fontSize = `calc(var(--gu)*2.5)`; 
+            el.textContent = text;
             document.getElementById('game-area').appendChild(el);
             setTimeout(() => el.remove(), 1000);
         }
