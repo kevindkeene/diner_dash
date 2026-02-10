@@ -64,8 +64,8 @@
         }
 
         .overlay-dark {
-            background: rgba(0, 0, 0, 0.95);
-            backdrop-filter: blur(20px);
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(12px);
             justify-content: center !important; 
             pointer-events: auto;
         }
@@ -87,90 +87,93 @@
         }
 
         .leaderboard-card {
-            background: rgba(15, 15, 15, 1);
-            padding: calc(var(--gu) * 1) calc(var(--gu) * 3);
+            background: rgba(20, 20, 20, 0.8);
+            padding: calc(var(--gu) * 1.5) calc(var(--gu) * 3);
             border-radius: calc(var(--gu) * 1);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 85%;
+            width: 90%;
             max-width: calc(var(--gu) * 85);
             box-shadow: 0 10px 30px rgba(0,0,0,0.8);
             border: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: calc(var(--gu) * 1);
         }
 
-        .lb-rank { font-size: calc(var(--gu) * 4); color: #9180ff; font-family: 'Bungee', cursive; margin-right: calc(var(--gu) * 2.5); }
+        .lb-rank { font-size: calc(var(--gu) * 4); color: #ffbf47; font-family: 'Bungee', cursive; margin-right: calc(var(--gu) * 2.5); }
         .lb-name { font-size: calc(var(--gu) * 2.8); font-weight: 900; text-transform: uppercase; color: #fff; line-height: 1; }
-        .lb-company { font-size: calc(var(--gu) * 1); font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.15em; margin-top: calc(var(--gu) * 0.2); }
-        .lb-score { font-size: calc(var(--gu) * 5); font-weight: 900; color: #9180ff; font-family: monospace; }
+        .lb-company { font-size: calc(var(--gu) * 1); font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.15em; margin-top: calc(var(--gu) * 0.2); }
+        .lb-score { font-size: calc(var(--gu) * 5); font-weight: 900; color: #ffbf47; font-family: monospace; }
 
         .btn-pill {
-            padding: calc(var(--gu) * 0.7) calc(var(--gu) * 6);
-            border-radius: calc(var(--gu) * 3);
+            padding: calc(var(--gu) * 0.8) calc(var(--gu) * 6);
+            border-radius: calc(var(--gu) * 4);
             font-weight: 900;
             text-transform: uppercase;
-            transition: transform 0.1s;
+            transition: all 0.2s;
             cursor: pointer;
             pointer-events: auto;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #fff;
+            background: #ffbf47;
             color: #000;
-            font-size: calc(var(--gu) * 1.6);
+            font-size: calc(var(--gu) * 1.8);
             border: none;
-            margin-top: calc(var(--gu) * 1.2);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.6);
+            margin-top: calc(var(--gu) * 2);
+            box-shadow: 0 5px 20px rgba(255, 191, 71, 0.3);
         }
         .btn-pill:active { transform: scale(0.95); }
+        .btn-pill:hover { filter: brightness(1.1); }
 
         .btn-secondary {
             background: transparent;
-            color: #6b7280;
+            color: #9ca3af;
             font-size: calc(var(--gu) * 1.2);
             font-weight: 700;
             text-transform: uppercase;
-            margin-top: calc(var(--gu) * 1);
+            margin-top: calc(var(--gu) * 1.5);
             cursor: pointer;
             text-decoration: underline;
             text-underline-offset: 4px;
+            pointer-events: auto;
         }
 
-        /* Styling for the Main Menu Header */
         .expo-header {
             font-family: 'Inter', sans-serif;
             font-weight: 900;
             text-transform: uppercase;
             color: #ffbf47;
-            letter-spacing: 10px;
-            font-size: calc(var(--gu) * 1.6);
+            letter-spacing: 0.4em;
+            font-size: calc(var(--gu) * 1.8);
             text-align: center;
-            margin-bottom: calc(var(--gu) * 1.5);
+            margin-bottom: calc(var(--gu) * 2);
         }
 
-        /* --- UI ELEMENTS --- */
-        .countdown-text { font-size: calc(var(--gu) * 12); font-family: 'Bungee', cursive; color: #fff; text-shadow: 0 0 30px rgba(255,255,255,0.4); line-height: 1; }
-        .go-title { font-size: calc(var(--gu) * 6); font-family: 'Bungee', cursive; color: #ef4444; font-style: italic; line-height: 1; text-align: center; }
-        .go-score { font-size: calc(var(--gu) * 5.5); font-weight: 900; color: #ffbf47; font-family: monospace; margin-top: calc(var(--gu) * 0.3); }
+        .countdown-text { font-size: calc(var(--gu) * 14); font-family: 'Bungee', cursive; color: #fff; text-shadow: 0 0 40px rgba(255,191,71,0.5); line-height: 1; }
+        .go-title { font-size: calc(var(--gu) * 8); font-family: 'Bungee', cursive; color: #ef4444; font-style: italic; line-height: 1; text-align: center; }
+        .go-score { font-size: calc(var(--gu) * 7); font-weight: 900; color: #ffbf47; font-family: monospace; margin-top: calc(var(--gu) * 0.5); }
 
         /* --- FORM STYLING --- */
-        .reg-label { display: block; text-transform: uppercase; font-weight: 900; letter-spacing: 0.2em; color: #ffbf47; margin-bottom: calc(var(--gu) * 0.2); font-size: calc(var(--gu) * 1); }
+        .reg-label { display: block; text-transform: uppercase; font-weight: 900; letter-spacing: 0.2em; color: #ffbf47; margin-bottom: calc(var(--gu) * 0.3); font-size: calc(var(--gu) * 1); }
         .form-input {
-            background: rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.08);
             border: calc(var(--gu) * 0.2) solid rgba(255,255,255,0.1);
-            padding: calc(var(--gu) * 0.7) calc(var(--gu) * 1.2);
-            border-radius: calc(var(--gu) * 0.8);
+            padding: calc(var(--gu) * 0.8) calc(var(--gu) * 1.5);
+            border-radius: calc(var(--gu) * 1);
             color: white;
-            font-size: calc(var(--gu) * 1.5);
+            font-size: calc(var(--gu) * 1.6);
             width: 100%;
             outline: none;
-            margin-bottom: calc(var(--gu) * 0.5);
+            margin-bottom: calc(var(--gu) * 1);
+            transition: border-color 0.2s;
         }
+        .form-input:focus { border-color: #ffbf47; }
 
         /* --- HUD --- */
         #hud { position: absolute; top: 0; left: 0; width: 100%; padding: calc(var(--gu) * 1.5); z-index: 500; pointer-events: none; }
-        .hud-text { font-size: calc(var(--gu) * 2.2); text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
-        .hud-sub { font-size: calc(var(--gu) * 0.9); text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .hud-text { font-size: calc(var(--gu) * 2.5); text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .hud-sub { font-size: calc(var(--gu) * 1); text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
 
         /* --- ADMIN DASHBOARD --- */
         #admin-panel {
@@ -184,8 +187,8 @@
             padding: calc(var(--gu) * 3);
             overflow-y: auto;
         }
-        .admin-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: calc(var(--gu)*1.1); }
-        .admin-table th, .admin-table td { text-align: left; padding: 8px; border-bottom: 1px solid #333; }
+        .admin-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: calc(var(--gu)*1.2); }
+        .admin-table th, .admin-table td { text-align: left; padding: 12px; border-bottom: 1px solid #333; }
         .admin-table th { color: #ffbf47; text-transform: uppercase; font-weight: 900; }
 
         #gunk-overlay {
@@ -196,9 +199,9 @@
             pointer-events: none;
             z-index: 450; 
             opacity: 0;
+            transition: opacity 0.1s;
         }
 
-        /* Responsive Character Containers */
         .character-container { 
             position: absolute; 
             z-index: 100; 
@@ -213,7 +216,6 @@
             display: block;
         }
 
-        /* Chef specific sizing (466x415 base) reduced 50% */
         #mad-bomber-img { 
             top: 0; 
             width: calc(var(--gu) * 12.135); 
@@ -221,7 +223,6 @@
             align-items: flex-start;
         }
 
-        /* Waitress specific sizing (757x415 base) reduced 50% */
         #waitress-container { 
             bottom: 0; 
             z-index: 90;
@@ -234,15 +235,14 @@
         .bomb-img { position: absolute; z-index: 50; transform: translateX(-50%); }
         .explosion-img { position: absolute; z-index: 200; pointer-events: none; transform: translate(-50%, -50%); width: calc(var(--gu) * 15); }
 
-        /* Point indicator animation */
         @keyframes riseAndFade {
             0% { transform: translate(-50%, 0); opacity: 1; }
-            100% { transform: translate(-50%, calc(var(--gu) * -8)); opacity: 0; }
+            100% { transform: translate(-50%, calc(var(--gu) * -10)); opacity: 0; }
         }
         .floating-points {
             position: absolute;
             font-family: 'Bungee', cursive;
-            color: #fbbf24;
+            color: #ffbf47;
             font-weight: 900;
             pointer-events: none;
             z-index: 600;
@@ -256,9 +256,9 @@
             transform: translateX(-50%);
             background: rgba(239, 68, 68, 0.95);
             color: white;
-            padding: calc(var(--gu) * 1) calc(var(--gu) * 2);
+            padding: calc(var(--gu) * 1) calc(var(--gu) * 2.5);
             border-radius: calc(var(--gu) * 0.5);
-            font-size: calc(var(--gu) * 1.2);
+            font-size: calc(var(--gu) * 1.4);
             font-weight: bold;
             z-index: 1000;
             pointer-events: none;
@@ -272,7 +272,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, onSnapshot, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, getDocs, addDoc, query, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const ASSETS_PATH = "https://kevindkeene.github.io/diner_dash/assets/";
         const THEME = {
@@ -294,23 +294,32 @@
             }
         };
 
+        // Firebase Setup
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "" };
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'catch-22-v2';
-        let db, auth, userId = null, currentPlayer = null;
+        let db, auth, user = null, currentPlayer = null;
 
         if (firebaseConfig.apiKey) {
             const app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
-            onAuthStateChanged(auth, async (user) => {
-                if (user) { userId = user.uid; fetchLeaderboards(); } 
-                else {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
-                    else await signInAnonymously(auth);
+
+            const initAuth = async () => {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
                 }
+            };
+            initAuth();
+
+            onAuthStateChanged(auth, (u) => {
+                user = u;
+                if (u) fetchLeaderboards();
             });
         }
 
+        // Game State
         let score = 0, lives = 3, frame = 0, bombs = [];
         let bucketX = 50, targetX = 50, madBomberX = 50, madBomberDirection = 1;
         let totalItemsCaught = 0, difficultyFactor = 1, gunkTimeRemaining = 0, animationFrameHandle, allScores = [];
@@ -319,26 +328,33 @@
         let lastInteractionTime = Date.now();
         const INACTIVITY_LIMIT = 20000; 
 
-        // Character Meta Constants
+        // Character Meta
         const CHEF_WIDTH_GU = 12.135;
         const CHEF_TRAY_TOP_PCT = 76.6;     
-        
-        // Waitress Meta (757x415 base reduced 50%)
         const WAITRESS_WIDTH_GU = 19.7135;
-        const WAITRESS_TRAY_X_PCT = (347 / 757) * 100;
-        const WAITRESS_TRAY_Y_PCT = (107 / 415) * 100;
-        const WAITRESS_TRAY_WIDTH_PCT = ((195 * 2) / 757) * 100;
-
         let nextQueuedItem = null; 
 
+        // Exponential backoff for Firebase writes
+        const retryWrite = async (fn, maxRetries = 5) => {
+            let delay = 1000;
+            for (let i = 0; i < maxRetries; i++) {
+                try { return await fn(); }
+                catch (e) {
+                    if (i === maxRetries - i) throw e;
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                }
+            }
+        };
+
         async function fetchLeaderboards() {
-            if (!db) return;
+            if (!db || !user) return;
             const q = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
             onSnapshot(q, (snapshot) => {
                 allScores = [];
                 snapshot.forEach(doc => allScores.push(doc.data()));
                 if (isGameOver) updateLeaderboardUI();
-            });
+            }, (err) => console.error("Leaderboard fail", err));
         }
 
         function updateLeaderboardUI() {
@@ -346,7 +362,7 @@
             if (!container) return;
             const topOne = [...allScores].sort((a, b) => b.score - a.score).slice(0, 1);
             if (topOne.length === 0) {
-                container.innerHTML = `<p class="opacity-40 italic text-center" style="font-size: calc(var(--gu)*1.2)">Waiting for the first Dasher...</p>`;
+                container.innerHTML = `<p class="opacity-40 italic text-center" style="font-size: calc(var(--gu)*1.5)">Waiting for the first Dasher...</p>`;
                 return;
             }
             container.innerHTML = topOne.map((s) => `
@@ -364,20 +380,24 @@
         }
 
         async function saveLead() {
-            if (!db || !currentPlayer) return;
-            try {
-                const leadsCol = collection(db, 'artifacts', appId, 'public', 'data', 'leads');
-                await addDoc(leadsCol, { ...currentPlayer, timestamp: Date.now(), deviceId: userId });
-            } catch (e) { console.error("Lead save failed", e); }
+            if (!db || !user || !currentPlayer) return;
+            await retryWrite(() => addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'leads'), {
+                ...currentPlayer,
+                timestamp: Date.now(),
+                userId: user.uid
+            }));
         }
 
         async function updateScoreInCloud() {
-            if (!db || !userId || score === 0 || !currentPlayer) return;
-            try {
-                const scoreId = `${userId}_${Date.now()}`;
-                const scoreDoc = doc(db, 'artifacts', appId, 'public', 'data', 'scores', scoreId);
-                await setDoc(scoreDoc, { userId, name: currentPlayer.name, company: currentPlayer.company, score, timestamp: Date.now() });
-            } catch (e) { console.error("Score save failed", e); }
+            if (!db || !user || score === 0 || !currentPlayer) return;
+            const scoreId = `${user.uid}_${Date.now()}`;
+            await retryWrite(() => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'scores', scoreId), {
+                userId: user.uid,
+                name: currentPlayer.name,
+                company: currentPlayer.company,
+                score,
+                timestamp: Date.now()
+            }));
         }
 
         async function startGame() {
@@ -403,7 +423,7 @@
         }
 
         function rollNextItem() {
-            const isSlime = Math.random() < 0.1;
+            const isSlime = Math.random() < 0.12;
             if (isSlime) {
                 nextQueuedItem = { type: 'slime', imgSrc: THEME.graphics.SLIME, value: 0 };
             } else {
@@ -411,11 +431,8 @@
                 let food = rand < 0.2 ? THEME.graphics.FOOD_ITEMS[2] : (rand < 0.5 ? THEME.graphics.FOOD_ITEMS[1] : THEME.graphics.FOOD_ITEMS[0]);
                 nextQueuedItem = { type: 'good', imgSrc: ASSETS_PATH + food.file, value: food.value };
             }
-            
             const trayImg = document.getElementById('tray-food-ready');
-            if (trayImg) {
-                trayImg.src = nextQueuedItem.imgSrc;
-            }
+            if (trayImg) trayImg.src = nextQueuedItem.imgSrc;
         }
 
         function showRegistration() {
@@ -425,7 +442,7 @@
             
             document.getElementById('status-message').innerHTML = `
                 <div class="reg-container">
-                    <h2 id="reg-trigger" class="font-brand text-white italic leading-none text-center cursor-pointer" style="font-size: calc(var(--gu)*5); margin-bottom: calc(var(--gu)*0.5)">PLAYER PROFILE</h2>
+                    <h2 id="reg-trigger" class="font-bold text-white italic leading-none text-center cursor-pointer" style="font-size: calc(var(--gu)*5); margin-bottom: calc(var(--gu)*0.5); font-family: 'Bungee'">PLAYER PROFILE</h2>
                     <p class="text-sm opacity-50 font-bold tracking-[0.3em] uppercase text-center" style="font-size: calc(var(--gu)*1.2); margin-bottom: calc(var(--gu)*1.5)">Register for the Leaderboard</p>
                     <div class="text-left">
                         <label class="reg-label">Full Name</label><input type="text" id="reg-name" class="form-input" placeholder="Enter name...">
@@ -444,7 +461,7 @@
             const startBtn = document.createElement('button');
             startBtn.className = "btn-pill w-[85%] max-w-xl mx-auto";
             startBtn.textContent = "Start Game";
-            startBtn.onclick = async (e) => {
+            startBtn.onclick = (e) => {
                 e.stopPropagation();
                 const name = document.getElementById('reg-name').value.trim();
                 const company = document.getElementById('reg-company').value.trim();
@@ -466,16 +483,14 @@
         function gameLoop() {
             if (isGameOver) return;
             frame++;
-
             difficultyFactor = 1 + (totalItemsCaught * 0.05);
 
-            const lerp = gunkTimeRemaining > 0 ? 0.08 : 0.4; 
+            const lerp = gunkTimeRemaining > 0 ? 0.06 : 0.3; 
             bucketX = bucketX + (targetX - bucketX) * lerp; 
             
-            const calculatedMinX = -((347 / 757 - 0.5) * WAITRESS_WIDTH_GU);
-            const calculatedMaxX = 100 - (((347 + 390) / 757 - 0.5) * WAITRESS_WIDTH_GU);
-
-            bucketX = Math.max(calculatedMinX, Math.min(bucketX, calculatedMaxX));
+            const minX = -((347 / 757 - 0.5) * WAITRESS_WIDTH_GU);
+            const maxX = 100 - (((347 + 390) / 757 - 0.5) * WAITRESS_WIDTH_GU);
+            bucketX = Math.max(minX, Math.min(bucketX, maxX));
             document.getElementById('waitress-container').style.left = `${bucketX}%`;
 
             if (isMissSequence) {
@@ -497,15 +512,17 @@
                 const now = performance.now();
                 if (now - countdownTimer > 1000) { countdownTimer = now; countdownValue--; triggerHaptic(50); }
                 const status = document.getElementById('status-message');
-                if (countdownValue > 0) status.innerHTML = `<div class="road-stack"><p class="countdown-text animate-bounce">${countdownValue}</p></div>`;
-                else if (countdownValue === 0) status.innerHTML = `<div class="road-stack"><p class="countdown-text animate-bounce">GO!</p></div>`;
+                if (countdownValue > 0) status.innerHTML = `<div class="road-stack"><p class="countdown-text">${countdownValue}</p></div>`;
+                else if (countdownValue === 0) status.innerHTML = `<div class="road-stack"><p class="countdown-text">GO!</p></div>`;
                 else { isCountdownActive = false; document.getElementById('overlay').classList.add('hidden'); }
             } else {
                 if (gunkTimeRemaining > 0) { 
                     gunkTimeRemaining -= 16; 
-                    document.getElementById('gunk-overlay').style.opacity = (gunkTimeRemaining / 3000) * 0.6; 
+                    document.getElementById('gunk-overlay').style.opacity = (gunkTimeRemaining / 3000) * 0.7; 
                 } else { document.getElementById('gunk-overlay').style.opacity = 0; }
-                updateBomber(); updateBombs();
+                
+                updateBomber(); 
+                updateBombs();
                 if (frame % 10 === 0) updateStats();
             }
             animationFrameHandle = requestAnimationFrame(gameLoop);
@@ -516,19 +533,14 @@
             if (Math.random() < 0.04) madBomberDirection *= -1;
             madBomberX += madBomberDirection * base;
             
-            if (madBomberX > 93.9) madBomberDirection = -1; else if (madBomberX < 6.1) madBomberDirection = 1;
+            if (madBomberX > 94) madBomberDirection = -1; else if (madBomberX < 6) madBomberDirection = 1;
             document.getElementById('mad-bomber-img').style.left = `${madBomberX}%`;
             
             const dropRate = Math.max(15, 80 / Math.sqrt(difficultyFactor));
             if (frame % Math.floor(dropRate) === 0) {
-                const offsetFromChefCenter = (CHEF_WIDTH_GU * -0.2908);
-                const spawnX = madBomberX + offsetFromChefCenter;
-
-                const chefHeightStagePct = (CHEF_WIDTH_GU * 0.8905) / 56.25 * 100;
-                const chefTrayTopStagePct = chefHeightStagePct * 0.766;
-                const foodHeightStagePct = (5 / 56.25) * 100;
-                const spawnY = chefTrayTopStagePct - foodHeightStagePct;
-
+                const offset = (CHEF_WIDTH_GU * -0.2908);
+                const spawnX = madBomberX + offset;
+                const spawnY = 15; 
                 createFallingBomb(spawnX, spawnY, nextQueuedItem);
                 rollNextItem();
             }
@@ -537,7 +549,7 @@
         function createFallingBomb(x, y, data) {
             const el = document.createElement('div');
             el.className = 'bomb-img absolute';
-            el.style.width = `5%`; el.style.left = `${x}%`; el.style.top = `${y}%`;
+            el.style.width = `calc(var(--gu)*5)`; el.style.left = `${x}%`; el.style.top = `${y}%`;
             el.innerHTML = `<img src="${data.imgSrc}" style="width: 100%; height: 100%; object-fit: contain;">`;
             document.getElementById('game-area').appendChild(el);
             
@@ -554,22 +566,14 @@
                 b.y += b.speed; 
                 b.el.style.top = `${b.y}%`;
                 
-                // --- PIXEL-PERFECT COLLISION ENGINE ---
-                const stageHeightGU = 56.25;
-                const waitressHeightGU = WAITRESS_WIDTH_GU * (415 / 757);
-                const waitressHeightStagePct = (waitressHeightGU / stageHeightGU) * 100;
-                
-                const trayTopStagePct = 100 - (waitressHeightStagePct * (1 - (107 / 415))); 
-                const foodHeightStagePct = (5 / stageHeightGU) * 100;
-                const foodBottomEdge = b.y + foodHeightStagePct;
+                const trayTop = 75; 
+                const waitressLeft = bucketX - (WAITRESS_WIDTH_GU / 2);
+                const trayLeft = waitressLeft + (WAITRESS_WIDTH_GU * (347 / 757));
+                const trayRight = trayLeft + (WAITRESS_WIDTH_GU * (390 / 757));
 
-                const waitressLeftEdge = bucketX - (WAITRESS_WIDTH_GU / 2);
-                const trayLeftX = waitressLeftEdge + (WAITRESS_WIDTH_GU * (347 / 757));
-                const trayRightX = trayLeftX + (WAITRESS_WIDTH_GU * ((195 * 2) / 757));
-
-                if (foodBottomEdge >= trayTopStagePct && b.y < trayTopStagePct) {
-                    if (b.x > (trayLeftX - 1) && b.x < (trayRightX + 1)) {
-                        handleCatch(i, b, trayTopStagePct);
+                if (b.y >= trayTop && b.y < trayTop + 5) {
+                    if (b.x > trayLeft && b.x < trayRight) {
+                        handleCatch(i, b, trayTop);
                         continue;
                     }
                 }
@@ -601,15 +605,10 @@
             createExplosion(b.x, 90);
             b.el.remove(); bombs.splice(idx, 1);
 
-            // Trigger "Oh No!" expressions
-            const chefMainImg = document.querySelector('#mad-bomber-img img:first-child');
             const waitressImg = document.querySelector('#waitress-container img');
-            if (chefMainImg) chefMainImg.src = THEME.graphics.OHNO_CHEF;
             if (waitressImg) waitressImg.src = THEME.graphics.OHNO_WAITRESS;
 
-            // Revert after brief moment (1.5s)
             setTimeout(() => {
-                if (chefMainImg) chefMainImg.src = THEME.graphics.BOMBER;
                 if (waitressImg) waitressImg.src = THEME.graphics.WAITRESS;
             }, 1500);
         }
@@ -617,27 +616,28 @@
         function endGame() {
             isGameOver = true; isCountdownActive = false; isMissSequence = false;
             cancelAnimationFrame(animationFrameHandle);
-            document.body.classList.remove('playing'); updateScoreInCloud();
+            document.body.classList.remove('playing'); 
+            updateScoreInCloud();
+            
             const area = document.getElementById('game-area'); 
             area.style.backgroundImage = `url('${THEME.graphics.SPLASH}')`;
             document.getElementById('mad-bomber-img').innerHTML = '';
             document.getElementById('waitress-container').innerHTML = '';
             document.getElementById('hud').classList.add('hidden'); 
-            document.getElementById('gunk-overlay').style.opacity = 0;
+            
             const overlay = document.getElementById('overlay');
             overlay.classList.remove('hidden'); overlay.classList.remove('overlay-dark'); 
             document.getElementById('status-message').innerHTML = `
                 <div class="road-stack">
                     <p class="go-title">GAME OVER</p>
                     <p class="go-score">${score.toLocaleString()}</p>
-                    <p class="go-sub" style="font-size: calc(var(--gu)*1); opacity: 0.5; margin-top: 5px; font-weight: bold; letter-spacing: 0.3em;">FINAL SCORE RECORDED</p>
+                    <p class="go-sub" style="font-size: calc(var(--gu)*1.2); opacity: 0.5; margin-top: 10px; font-weight: bold; letter-spacing: 0.3em; text-transform: uppercase">FINAL SCORE RECORDED</p>
                 </div>
             `;
             const btns = document.getElementById('difficulty-buttons'); btns.innerHTML = '';
             const btn = document.createElement('button'); btn.className = "btn-pill"; btn.textContent = "MAIN MENU"; 
             btn.onclick = (e) => { e.stopPropagation(); showInitialSplash(); }; 
             btns.appendChild(btn);
-            lastInteractionTime = Date.now();
         }
 
         function updateStats() { 
@@ -654,44 +654,31 @@
             el.className = 'floating-points';
             el.style.left = `${x}%`; 
             el.style.top = `${y}%`; 
-            el.style.fontSize = `calc(var(--gu)*2.5)`; 
+            el.style.fontSize = `calc(var(--gu)*3)`; 
             el.textContent = text;
             document.getElementById('game-area').appendChild(el);
             setTimeout(() => el.remove(), 1000);
         }
 
-        function checkInactivity() {
-            if (isGameOver && !document.body.classList.contains('playing')) {
-                const now = Date.now();
-                if (now - lastInteractionTime > INACTIVITY_LIMIT) {
-                    const statusMsg = document.getElementById('status-message');
-                    const isSplash = statusMsg.querySelector('.expo-header') !== null;
-                    if (!isSplash) showInitialSplash();
-                }
-            }
-        }
-        setInterval(checkInactivity, 1000);
-
-        function updateInteraction() { lastInteractionTime = Date.now(); }
-
-        async function openAdminPanel() {
+        function openAdminPanel() {
             const panel = document.getElementById('admin-panel');
             panel.style.display = 'block';
             const tbody = document.getElementById('admin-tbody');
             tbody.innerHTML = '<tr><td colspan="3">Fetching leads...</td></tr>';
-            try {
-                const q = collection(db, 'artifacts', appId, 'public', 'data', 'leads');
-                const snap = await getDocs(q);
-                let html = '';
-                let leads = [];
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    leads.push(data);
-                    html += `<tr><td>${data.name}</td><td>${data.company}</td><td>${data.email}</td></tr>`;
-                });
-                tbody.innerHTML = html || '<tr><td colspan="3">No leads captured yet.</td></tr>';
-                window.currentLeads = leads;
-            } catch (e) { tbody.innerHTML = '<tr><td colspan="3">Error loading data.</td></tr>'; }
+            (async () => {
+                try {
+                    const snap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'leads'));
+                    let html = '';
+                    let leads = [];
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        leads.push(data);
+                        html += `<tr><td>${data.name}</td><td>${data.company}</td><td>${data.email}</td></tr>`;
+                    });
+                    tbody.innerHTML = html || '<tr><td colspan="3">No leads captured yet.</td></tr>';
+                    window.currentLeads = leads;
+                } catch (e) { tbody.innerHTML = '<tr><td colspan="3">Error loading data.</td></tr>'; }
+            })();
         }
 
         function downloadLeadsCSV() {
@@ -699,21 +686,14 @@
             const headers = ['Name', 'Company', 'Email', 'Timestamp'];
             const rows = window.currentLeads.map(l => [`"${l.name}"`, `"${l.company}"`, `"${l.email}"`, new Date(l.timestamp).toLocaleString()].join(','));
             const csvContent = [headers.join(','), ...rows].join('\n');
-            try {
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.setAttribute("href", url);
-                link.setAttribute("download", `expo_leads_${Date.now()}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } catch (e) {
-                const dummy = document.createElement("textarea");
-                document.body.appendChild(dummy); dummy.value = csvContent; dummy.select();
-                document.execCommand("copy"); document.body.removeChild(dummy);
-                showToast("CSV data copied to clipboard!");
-            }
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `expo_leads_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function showInitialSplash() {
@@ -735,18 +715,16 @@
             const btns = document.getElementById('difficulty-buttons'); btns.innerHTML = '';
             const btn = document.createElement('button'); 
             btn.className = "btn-pill shadow-xl"; btn.textContent = "Start Game";
-            btn.onclick = (e) => { e.stopPropagation(); toggleFullscreen(); currentPlayer = null; showRegistration(); };
+            btn.onclick = (e) => { e.stopPropagation(); currentPlayer = null; showRegistration(); };
             btns.appendChild(btn);
-            updateInteraction();
         }
 
         function initGameElements() {
             const area = document.getElementById('game-area');
             area.style.backgroundImage = `url('${THEME.graphics.BACKGROUND}')`;
             
-            const chefContainer = document.getElementById('mad-bomber-img');
-            chefContainer.innerHTML = `
-                <img src="${THEME.graphics.BOMBER}" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;">
+            document.getElementById('mad-bomber-img').innerHTML = `
+                <img src="${THEME.graphics.BOMBER}" style="width: 100%; height: 100%;">
                 <div id="tray-food-container" style="
                     position: absolute;
                     top: ${CHEF_TRAY_TOP_PCT}%;
@@ -763,15 +741,13 @@
                 </div>
             `;
 
-            const waitressContainer = document.getElementById('waitress-container');
-            waitressContainer.innerHTML = `<img src="${THEME.graphics.WAITRESS}" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;">`;
-            
+            document.getElementById('waitress-container').innerHTML = `<img src="${THEME.graphics.WAITRESS}" style="width: 100%; height: 100%;">`;
             document.getElementById('life-icon').src = THEME.graphics.BUCKET;
         }
 
         function createExplosion(x, y) {
             const ex = document.createElement('div');
-            ex.className = 'explosion-img pixel-art';
+            ex.className = 'explosion-img';
             ex.style.left = `${x}%`; ex.style.top = `${y}%`;
             ex.innerHTML = `<img src="${THEME.graphics.EXPLOSION}" class="w-full">`;
             document.getElementById('game-area').appendChild(ex);
@@ -779,7 +755,7 @@
         }
 
         function handleInteraction(e) {
-            updateInteraction();
+            lastInteractionTime = Date.now();
             if (isGameOver) return; 
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const rect = document.getElementById('game-area').getBoundingClientRect();
@@ -788,11 +764,9 @@
 
         function showToast(msg) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.style.opacity = '1'; setTimeout(() => { toast.style.opacity = '0'; }, 3000); }
         function triggerHaptic(ms) { if ("vibrate" in navigator) navigator.vibrate(ms); }
-        function toggleFullscreen() { if (!document.fullscreenEnabled) return; if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(e => {}); } }
 
         window.closeAdmin = () => document.getElementById('admin-panel').style.display = 'none';
         window.downloadLeadsCSV = downloadLeadsCSV;
-        window.toggleFullscreen = toggleFullscreen;
         
         window.onload = () => {
             showInitialSplash();
@@ -800,19 +774,26 @@
             area.addEventListener('mousemove', handleInteraction);
             area.addEventListener('touchstart', (e) => { if (!isGameOver) { e.preventDefault(); handleInteraction(e); } }, { passive: false });
             area.addEventListener('touchmove', (e) => { if (!isGameOver) { e.preventDefault(); handleInteraction(e); } }, { passive: false });
-            window.addEventListener('keydown', updateInteraction);
-            window.addEventListener('input', updateInteraction);
+            
+            setInterval(() => {
+                if (isGameOver && !document.body.classList.contains('playing')) {
+                    if (Date.now() - lastInteractionTime > INACTIVITY_LIMIT) {
+                        const statusMsg = document.getElementById('status-message');
+                        if (!statusMsg.querySelector('.expo-header')) showInitialSplash();
+                    }
+                }
+            }, 1000);
         };
     </script>
 </head>
 <body>
     <div id="game-container">
         <div id="admin-panel">
-            <div class="flex justify-between items-center border-gray-700 pb-4">
+            <div class="flex justify-between items-center border-b border-gray-700 pb-4">
                 <h1 class="text-2xl font-black text-yellow-500">EXPO LEADS</h1>
                 <div class="flex gap-4">
-                    <button onclick="downloadLeadsCSV()" class="bg-blue-600 px-4 py-2 rounded font-bold uppercase text-xs">Export CSV</button>
-                    <button onclick="closeAdmin()" class="bg-red-600 px-4 py-2 rounded font-bold uppercase text-xs">Close</button>
+                    <button onclick="downloadLeadsCSV()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-bold uppercase text-xs transition-colors">Export CSV</button>
+                    <button onclick="closeAdmin()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-bold uppercase text-xs transition-colors">Close</button>
                 </div>
             </div>
             <table class="admin-table">
@@ -825,7 +806,7 @@
         
         <div id="game-area">
             <div id="hud" class="flex justify-between items-start hidden">
-                <div class="flex flex-col text-left" id="admin-trigger">
+                <div class="flex flex-col text-left">
                     <span class="hud-sub text-white/50 font-black uppercase tracking-widest">Global Ranking System</span>
                     <span id="score-display" class="hud-text font-mono font-black leading-none" style="color: #ffbf47">000000</span>
                 </div>
@@ -833,7 +814,7 @@
                     <div class="flex flex-col items-end">
                         <span id="level-display" class="hud-sub font-black text-yellow-500 uppercase">×1 DASH BOOST</span>
                         <div class="flex items-center gap-2 mt-1">
-                            <img id="life-icon" src="https://kevindkeene.github.io/diner_dash/assets/bucket.gif" class="w-[calc(var(--gu)*3.5)] h-auto pixel-art">
+                            <img id="life-icon" src="" class="w-[calc(var(--gu)*4)] h-auto">
                             <span id="lives-count" class="hud-text text-white font-black">×3</span>
                         </div>
                     </div>
