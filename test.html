@@ -42,6 +42,7 @@
             position: relative;
             width: 100%;
             flex-grow: 1;
+            background-image: url('https://kevindkeene.github.io/diner_dash/assets/splash-screen.svg');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -62,7 +63,6 @@
             transition: background 0.3s ease;
         }
 
-        /* --- REGISTRATION OVERLAY (DARK + BLUR) --- */
         .overlay-reg {
             background: rgba(0, 0, 0, 0.92);
             backdrop-filter: blur(15px);
@@ -70,7 +70,6 @@
             pointer-events: auto;
         }
 
-        /* --- GAME SEQUENCE OVERLAY (LIGHTER + NO BLUR) --- */
         .overlay-sequence {
             background: rgba(0, 0, 0, 0.45);
             justify-content: center !important;
@@ -238,7 +237,6 @@
 
         .bomb-img { position: absolute; z-index: 50; transform: translateX(-50%); }
 
-        /* --- FEEDBACK ANIMATIONS --- */
         @keyframes riseAndFade {
             0% { transform: translate(-50%, 0); opacity: 1; }
             100% { transform: translate(-50%, calc(var(--gu) * -10)); opacity: 0; }
@@ -267,39 +265,13 @@
             text-align: center;
         }
         
-        #pause-overlay {
-            background: rgba(0,0,0,0.7);
-            border: 2px solid #ffbf47;
-        }
-        
-        #miss-overlay {
-            background: rgba(239, 68, 68, 0.9);
-            border: 2px solid #fff;
-        }
+        #pause-overlay { background: rgba(0,0,0,0.7); border: 2px solid #ffbf47; }
+        #miss-overlay { background: rgba(239, 68, 68, 0.9); border: 2px solid #fff; }
 
-        .pause-text, .miss-text {
-            font-family: 'Bungee', cursive;
-            margin-bottom: calc(var(--gu)*0.5);
-        }
-        
-        .pause-text {
-            font-size: calc(var(--gu)*5);
-            color: #ffbf47;
-        }
-        
-        .miss-text {
-            font-size: calc(var(--gu)*4);
-            color: #fff;
-            margin-bottom: 0;
-        }
-
-        .pause-subtext {
-            font-size: calc(var(--gu)*1.2);
-            text-transform: uppercase;
-            font-weight: 900;
-            letter-spacing: 0.2em;
-            color: #fff;
-        }
+        .pause-text, .miss-text { font-family: 'Bungee', cursive; margin-bottom: calc(var(--gu)*0.5); }
+        .pause-text { font-size: calc(var(--gu)*5); color: #ffbf47; }
+        .miss-text { font-size: calc(var(--gu)*4); color: #fff; margin-bottom: 0; }
+        .pause-subtext { font-size: calc(var(--gu)*1.2); text-transform: uppercase; font-weight: 900; letter-spacing: 0.2em; color: #fff; }
 
         #toast {
             position: absolute;
@@ -345,12 +317,25 @@
             }
         };
 
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "" };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'catch-22-v2';
+        // --- FIREBASE CONFIGURATION LOADED FROM SCREENSHOT ---
+        const manualFirebaseConfig = {
+            apiKey: "AIzaSyARYLiUktqcrNtjnlz_Y9G3oyVEy0TVfXo",
+            authDomain: "bomas-burgers.firebaseapp.com",
+            projectId: "bomas-burgers",
+            storageBucket: "bomas-burgers.firebasestorage.app",
+            messagingSenderId: "893922706413",
+            appId: "1:893922706413:web:280ee152b8d187d9655de4",
+            measurementId: "G-GV4RY72TQ3"
+        };
+        const manualAppId = "bomas-burgers";
+
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : manualFirebaseConfig;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : manualAppId;
+        
         let db, auth, user = null, currentPlayer = null;
         let allLeads = [];
 
-        if (firebaseConfig.apiKey) {
+        if (firebaseConfig && firebaseConfig.apiKey) {
             const app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
@@ -442,29 +427,15 @@
         async function registerOrUpdatePlayer(playerData) {
             if (!db || !user) return;
             const existingLead = allLeads.find(l => l.email === playerData.email);
-            
             if (existingLead) {
                 const newPlayCount = (existingLead.playCount || 0) + 1;
                 const leadDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leads', existingLead.id);
-                await retryWrite(() => updateDoc(leadDoc, { 
-                    playCount: newPlayCount,
-                    lastPlayed: Date.now(),
-                    name: playerData.name,
-                    company: playerData.company
-                }));
+                await retryWrite(() => updateDoc(leadDoc, { playCount: newPlayCount, lastPlayed: Date.now(), name: playerData.name, company: playerData.company }));
                 currentPlayer = { ...existingLead, name: playerData.name, company: playerData.company, playCount: newPlayCount };
             } else {
                 const leadId = playerData.email.replace(/[^a-zA-Z0-9]/g, '_');
                 const leadDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leads', leadId);
-                const newPlayer = {
-                    ...playerData,
-                    playCount: 1,
-                    timestamp: Date.now(),
-                    lastPlayed: Date.now(),
-                    maxScore: 0,
-                    maxBooster: 1,
-                    totalCaught: 0
-                };
+                const newPlayer = { ...playerData, playCount: 1, timestamp: Date.now(), lastPlayed: Date.now(), maxScore: 0, maxBooster: 1, totalCaught: 0 };
                 await retryWrite(() => setDoc(leadDoc, newPlayer));
                 currentPlayer = newPlayer;
             }
@@ -472,61 +443,39 @@
 
         async function updateFinalStats() {
             if (!db || !user || !currentPlayer) return;
-            
             const scoreId = `${user.uid}_${Date.now()}`;
-            await retryWrite(() => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'scores', scoreId), {
-                userId: user.uid,
-                name: currentPlayer.name,
-                company: currentPlayer.company,
-                score,
-                timestamp: Date.now()
-            }));
-
+            await retryWrite(() => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'scores', scoreId), { userId: user.uid, name: currentPlayer.name, company: currentPlayer.company, score, timestamp: Date.now() }));
             const leadId = currentPlayer.email.replace(/[^a-zA-Z0-9]/g, '_');
             const leadDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leads', leadId);
-            
-            await retryWrite(() => updateDoc(leadDoc, {
-                maxScore: Math.max(currentPlayer.maxScore || 0, score),
-                maxBooster: Math.max(currentPlayer.maxBooster || 1, Math.floor(difficultyFactor)),
-                totalCaught: (currentPlayer.totalCaught || 0) + totalItemsCaught
-            }));
+            await retryWrite(() => updateDoc(leadDoc, { maxScore: Math.max(currentPlayer.maxScore || 0, score), maxBooster: Math.max(currentPlayer.maxBooster || 1, Math.floor(difficultyFactor)), totalCaught: (currentPlayer.totalCaught || 0) + totalItemsCaught }));
         }
 
         async function startGame() {
             if (!currentPlayer) { showRegistration(); return; }
-            
             isGameOver = false; isCountdownActive = true; isMissSequence = false; isPaused = false;
             document.getElementById('pause-overlay').style.display = 'none';
             document.getElementById('miss-overlay').style.display = 'none';
-            
-            // Clear UI Ghosting
             document.getElementById('status-message').innerHTML = '';
             document.getElementById('difficulty-buttons').innerHTML = '';
-            
             countdownValue = 5; countdownTimer = performance.now();
             document.body.classList.add('playing');
             document.getElementById('hud').classList.remove('hidden');
             score = 0; lives = 3; frame = 0; totalItemsCaught = 0; difficultyFactor = 1;
             madBomberX = 50; bucketX = 50; targetX = 50; gunkTimeRemaining = 0;
             bombs.forEach(b => b.el.remove()); bombs = [];
-            
             rollNextItem();
             initGameElements();
             updateStats();
-            
             const overlay = document.getElementById('overlay');
-            overlay.classList.remove('hidden', 'overlay-reg'); 
-            overlay.classList.add('overlay-sequence');
-            
+            overlay.classList.remove('hidden', 'overlay-reg'); overlay.classList.add('overlay-sequence');
             cancelAnimationFrame(animationFrameHandle);
             gameLoop();
         }
 
         function rollNextItem() {
             const isSlime = Math.random() < 0.12;
-            if (isSlime) {
-                nextQueuedItem = { type: 'slime', imgSrc: THEME.graphics.SLIME, value: 0 };
-            } else {
+            if (isSlime) { nextQueuedItem = { type: 'slime', imgSrc: THEME.graphics.SLIME, value: 0 }; } 
+            else {
                 const rand = Math.random();
                 let food = rand < 0.2 ? THEME.graphics.FOOD_ITEMS[2] : (rand < 0.5 ? THEME.graphics.FOOD_ITEMS[1] : THEME.graphics.FOOD_ITEMS[0]);
                 nextQueuedItem = { type: 'good', imgSrc: ASSETS_PATH + food.file, value: food.value };
@@ -537,10 +486,8 @@
 
         function showRegistration() {
             const overlay = document.getElementById('overlay');
-            overlay.classList.remove('hidden', 'overlay-sequence'); 
-            overlay.classList.add('overlay-reg');
+            overlay.classList.remove('hidden', 'overlay-sequence'); overlay.classList.add('overlay-reg');
             document.getElementById('hud').classList.add('hidden');
-            
             document.getElementById('status-message').innerHTML = `
                 <div class="reg-container">
                     <h2 id="reg-trigger" class="font-bold text-white italic leading-none text-center cursor-pointer" style="font-size: calc(var(--gu)*5); margin-bottom: calc(var(--gu)*0.5); font-family: 'Bungee'">PLAYER PROFILE</h2>
@@ -552,12 +499,7 @@
                     </div>
                 </div>
             `;
-            
-            document.getElementById('reg-trigger').onclick = () => {
-                adminClicks++;
-                if (adminClicks >= 5) { adminClicks = 0; openAdminPanel(); }
-            };
-
+            document.getElementById('reg-trigger').onclick = () => { adminClicks++; if (adminClicks >= 5) { adminClicks = 0; openAdminPanel(); } };
             const btns = document.getElementById('difficulty-buttons'); btns.innerHTML = '';
             const startBtn = document.createElement('button');
             startBtn.className = "btn-pill w-[85%] max-w-xl mx-auto";
@@ -567,65 +509,33 @@
                 let name = document.getElementById('reg-name').value.trim();
                 let company = document.getElementById('reg-company').value.trim();
                 const email = document.getElementById('reg-email').value.trim().toLowerCase();
-
-                if (!name || !company || !email) { 
-                    showToast("Required fields empty!"); 
-                    return; 
-                }
-
+                if (!name || !company || !email) { showToast("Required fields empty!"); return; }
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(email)) {
-                    showToast("Invalid email format!");
-                    return;
-                }
-
-                const toTitleCase = (str) => {
-                    return str.split(' ')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                        .join(' ');
-                };
-
-                name = toTitleCase(name);
-                company = toTitleCase(company);
-                
+                if (!emailRegex.test(email)) { showToast("Invalid email format!"); return; }
+                const toTitleCase = (str) => str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+                name = toTitleCase(name); company = toTitleCase(company);
                 await registerOrUpdatePlayer({ name, company, email });
                 startGame();
             };
-            
             const backBtn = document.createElement('button');
-            backBtn.className = "btn-secondary";
-            backBtn.textContent = "Back to Menu";
+            backBtn.className = "btn-secondary"; backBtn.textContent = "Back to Menu";
             backBtn.onclick = (e) => { e.stopPropagation(); showInitialSplash(); };
-
-            btns.appendChild(startBtn);
-            btns.appendChild(backBtn);
+            btns.appendChild(startBtn); btns.appendChild(backBtn);
         }
 
         function gameLoop() {
             if (isGameOver) return;
-            
-            if (isPaused) {
-                animationFrameHandle = requestAnimationFrame(gameLoop);
-                return;
-            }
-
+            if (isPaused) { animationFrameHandle = requestAnimationFrame(gameLoop); return; }
             frame++;
             difficultyFactor = 1 + (totalItemsCaught * 0.05);
-
             const lerp = gunkTimeRemaining > 0 ? 0.06 : 0.3; 
             bucketX = bucketX + (targetX - bucketX) * lerp; 
-            
             const minX = -((347 / 757 - 0.5) * WAITRESS_WIDTH_GU);
             const maxX = 100 - (((347 + 390) / 757 - 0.5) * WAITRESS_WIDTH_GU);
             bucketX = Math.max(minX, Math.min(bucketX, maxX));
             document.getElementById('waitress-container').style.left = `${bucketX}%`;
-
             if (isMissSequence) {
-                if (frame % 12 === 0 && bombs.length > 0) {
-                    const b = bombs.pop();
-                    b.el.remove();
-                    triggerHaptic(100);
-                }
+                if (frame % 12 === 0 && bombs.length > 0) { const b = bombs.pop(); b.el.remove(); triggerHaptic(100); }
                 if (bombs.length === 0 && frame % 100 === 0) {
                     isMissSequence = false;
                     document.getElementById('miss-overlay').style.display = 'none';
@@ -633,8 +543,7 @@
                     else {
                         isCountdownActive = true; countdownValue = 3; countdownTimer = performance.now();
                         const overlay = document.getElementById('overlay');
-                        overlay.classList.remove('hidden');
-                        overlay.classList.add('overlay-sequence');
+                        overlay.classList.remove('hidden'); overlay.classList.add('overlay-sequence');
                     }
                 }
             } else if (isCountdownActive) {
@@ -643,21 +552,11 @@
                 const status = document.getElementById('status-message');
                 if (countdownValue > 0) status.innerHTML = `<div class="road-stack"><p class="countdown-text">${countdownValue}</p></div>`;
                 else if (countdownValue === 0) status.innerHTML = `<div class="road-stack"><p class="countdown-text">GO!</p></div>`;
-                else { 
-                    isCountdownActive = false; 
-                    status.innerHTML = ''; // Ensure text is cleared
-                    const overlay = document.getElementById('overlay');
-                    overlay.classList.add('hidden'); 
-                    overlay.classList.remove('overlay-sequence');
-                }
+                else { isCountdownActive = false; status.innerHTML = ''; const overlay = document.getElementById('overlay'); overlay.classList.add('hidden'); overlay.classList.remove('overlay-sequence'); }
             } else {
-                if (gunkTimeRemaining > 0) { 
-                    gunkTimeRemaining -= 16; 
-                    document.getElementById('gunk-overlay').style.opacity = (gunkTimeRemaining / 3000) * 0.7; 
-                } else { document.getElementById('gunk-overlay').style.opacity = 0; }
-                
-                updateBomber(); 
-                updateBombs();
+                if (gunkTimeRemaining > 0) { gunkTimeRemaining -= 16; document.getElementById('gunk-overlay').style.opacity = (gunkTimeRemaining / 3000) * 0.7; } 
+                else { document.getElementById('gunk-overlay').style.opacity = 0; }
+                updateBomber(); updateBombs();
                 if (frame % 10 === 0) updateStats();
             }
             animationFrameHandle = requestAnimationFrame(gameLoop);
@@ -667,10 +566,8 @@
             const base = (1.0) * difficultyFactor;
             if (Math.random() < 0.04) madBomberDirection *= -1;
             madBomberX += madBomberDirection * base;
-            
             if (madBomberX > 94) madBomberDirection = -1; else if (madBomberX < 6) madBomberDirection = 1;
             document.getElementById('mad-bomber-img').style.left = `${madBomberX}%`;
-            
             const dropRate = Math.max(15, 80 / Math.sqrt(difficultyFactor));
             if (frame % Math.floor(dropRate) === 0) {
                 const offset = (CHEF_WIDTH_GU * -0.2908);
@@ -683,40 +580,23 @@
 
         function createFallingBomb(x, y, data) {
             const el = document.createElement('div');
-            el.className = 'bomb-img absolute';
-            el.style.width = `calc(var(--gu)*5)`; el.style.left = `${x}%`; el.style.top = `${y}%`;
+            el.className = 'bomb-img absolute'; el.style.width = `calc(var(--gu)*5)`; el.style.left = `${x}%`; el.style.top = `${y}%`;
             el.innerHTML = `<img src="${data.imgSrc}" style="width: 100%; height: 100%; object-fit: contain;">`;
             document.getElementById('game-area').appendChild(el);
-            
-            bombs.push({ 
-                x, y, el, type: data.type, 
-                value: data.value, 
-                speed: (1.2) * Math.sqrt(difficultyFactor) 
-            });
+            bombs.push({ x, y, el, type: data.type, value: data.value, speed: (1.2) * Math.sqrt(difficultyFactor) });
         }
 
         function updateBombs() {
             for (let i = bombs.length - 1; i >= 0; i--) {
-                const b = bombs[i]; 
-                b.y += b.speed; 
-                b.el.style.top = `${b.y}%`;
-                
+                const b = bombs[i]; b.y += b.speed; b.el.style.top = `${b.y}%`;
                 const trayTop = 75; 
                 const waitressLeft = bucketX - (WAITRESS_WIDTH_GU / 2);
                 const trayLeft = waitressLeft + (WAITRESS_WIDTH_GU * (347 / 757));
                 const trayRight = trayLeft + (WAITRESS_WIDTH_GU * (390 / 757));
-
                 if (b.y >= trayTop && b.y < trayTop + 5) {
-                    if (b.x > trayLeft && b.x < trayRight) {
-                        handleCatch(i, b, trayTop);
-                        continue;
-                    }
+                    if (b.x > trayLeft && b.x < trayRight) { handleCatch(i, b, trayTop); continue; }
                 }
-
-                if (b.y > 98) {
-                    if (b.type === 'good') handleMiss(i, b);
-                    else { b.el.remove(); bombs.splice(i, 1); }
-                }
+                if (b.y > 98) { if (b.type === 'good') handleMiss(i, b); else { b.el.remove(); bombs.splice(i, 1); } }
             }
         }
 
@@ -724,38 +604,23 @@
             if (b.type === 'slime') { gunkTimeRemaining = 3000; triggerHaptic(100); } 
             else {
                 const multiplier = Math.floor(difficultyFactor);
-                const points = b.value * multiplier; 
-                score += points; 
-                totalItemsCaught++;
-                triggerHaptic(20);
-                showFloatingPoints(b.x, trayY, `+${points}`);
+                const points = b.value * multiplier; score += points; totalItemsCaught++;
+                triggerHaptic(20); showFloatingPoints(b.x, trayY, `+${points}`);
             }
             b.el.remove(); bombs.splice(idx, 1); updateStats();
         }
 
         function handleMiss(idx, b) {
             if (isMissSequence) return;
-            isMissSequence = true; triggerHaptic(300); lives--;
-            updateStats();
-            
-            // Clear UI Ghosting
-            document.getElementById('status-message').innerHTML = '';
-            document.getElementById('difficulty-buttons').innerHTML = '';
-            
+            isMissSequence = true; triggerHaptic(300); lives--; updateStats();
+            document.getElementById('status-message').innerHTML = ''; document.getElementById('difficulty-buttons').innerHTML = '';
             const overlay = document.getElementById('overlay');
-            overlay.classList.remove('hidden', 'overlay-reg');
-            overlay.classList.add('overlay-sequence');
-            
+            overlay.classList.remove('hidden', 'overlay-reg'); overlay.classList.add('overlay-sequence');
             document.getElementById('miss-overlay').style.display = 'block';
-            
             b.el.remove(); bombs.splice(idx, 1);
-
             const waitressImg = document.querySelector('#waitress-container img');
             if (waitressImg) waitressImg.src = THEME.graphics.OHNO_WAITRESS;
-
-            setTimeout(() => {
-                if (waitressImg) waitressImg.src = THEME.graphics.WAITRESS;
-            }, 1500);
+            setTimeout(() => { if (waitressImg) waitressImg.src = THEME.graphics.WAITRESS; }, 1500);
         }
 
         async function endGame() {
@@ -764,15 +629,12 @@
             document.body.classList.remove('playing'); 
             document.getElementById('pause-overlay').style.display = 'none';
             document.getElementById('miss-overlay').style.display = 'none';
-            
             await updateFinalStats();
-            
             const area = document.getElementById('game-area'); 
             area.style.backgroundImage = `url('${THEME.graphics.SPLASH}')`;
             document.getElementById('mad-bomber-img').innerHTML = '';
             document.getElementById('waitress-container').innerHTML = '';
             document.getElementById('hud').classList.add('hidden'); 
-            
             const overlay = document.getElementById('overlay');
             overlay.classList.remove('hidden', 'overlay-reg', 'overlay-sequence'); 
             document.getElementById('status-message').innerHTML = `
@@ -784,8 +646,7 @@
             `;
             const btns = document.getElementById('difficulty-buttons'); btns.innerHTML = '';
             const btn = document.createElement('button'); btn.className = "btn-pill"; btn.textContent = "MAIN MENU"; 
-            btn.onclick = (e) => { e.stopPropagation(); showInitialSplash(); }; 
-            btns.appendChild(btn);
+            btn.onclick = (e) => { e.stopPropagation(); showInitialSplash(); }; btns.appendChild(btn);
         }
 
         function updateStats() { 
@@ -798,33 +659,19 @@
         }
 
         function showFloatingPoints(x, y, text) {
-            const el = document.createElement('div'); 
-            el.className = 'floating-points';
-            el.style.left = `${x}%`; el.style.top = `${y}%`; 
-            el.style.fontSize = `calc(var(--gu)*3)`; 
-            el.textContent = text;
+            const el = document.createElement('div'); el.className = 'floating-points'; el.style.left = `${x}%`; el.style.top = `${y}%`; 
+            el.style.fontSize = `calc(var(--gu)*3)`; el.textContent = text;
             document.getElementById('game-area').appendChild(el);
             setTimeout(() => el.remove(), 1000);
         }
 
         function openAdminPanel() {
-            const panel = document.getElementById('admin-panel');
-            panel.style.display = 'block';
+            const panel = document.getElementById('admin-panel'); panel.style.display = 'block';
             const tbody = document.getElementById('admin-tbody');
-            
             let html = '';
             const sortedLeads = [...allLeads].sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0));
-            
             sortedLeads.forEach(data => {
-                html += `<tr>
-                    <td>${data.name}</td>
-                    <td>${data.company}</td>
-                    <td>${data.email}</td>
-                    <td class="text-yellow-500 font-bold">${(data.maxScore || 0).toLocaleString()}</td>
-                    <td>x${data.maxBooster || 1}</td>
-                    <td>${data.totalCaught || 0}</td>
-                    <td class="text-blue-400 font-bold">${data.playCount || 1}</td>
-                </tr>`;
+                html += `<tr><td>${data.name}</td><td>${data.company}</td><td>${data.email}</td><td class="text-yellow-500 font-bold">${(data.maxScore || 0).toLocaleString()}</td><td>x${data.maxBooster || 1}</td><td>${data.totalCaught || 0}</td><td class="text-blue-400 font-bold">${data.playCount || 1}</td></tr>`;
             });
             tbody.innerHTML = html || '<tr><td colspan="7" class="text-center p-8 opacity-50">No leads captured yet.</td></tr>';
         }
@@ -832,25 +679,12 @@
         function downloadLeadsCSV() {
             if (!allLeads || allLeads.length === 0) return;
             const headers = ['Name', 'Company', 'Email', 'Max Score', 'Max Booster', 'Items Caught', 'Play Count', 'Last Played'];
-            const rows = allLeads.map(l => [
-                `"${l.name}"`, 
-                `"${l.company}"`, 
-                `"${l.email}"`, 
-                l.maxScore || 0,
-                l.maxBooster || 1,
-                l.totalCaught || 0,
-                l.playCount || 1,
-                new Date(l.lastPlayed || l.timestamp).toLocaleString()
-            ].join(','));
+            const rows = allLeads.map(l => [`"${l.name}"`, `"${l.company}"`, `"${l.email}"`, l.maxScore || 0, l.maxBooster || 1, l.totalCaught || 0, l.playCount || 1, new Date(l.lastPlayed || l.timestamp).toLocaleString()].join(','));
             const csvContent = [headers.join(','), ...rows].join('\n');
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.setAttribute("href", url);
-            link.setAttribute("download", `expo_player_analytics_${Date.now()}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            const link = document.createElement("a"); link.setAttribute("href", url); link.setAttribute("download", `expo_player_analytics_${Date.now()}.csv`);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
         function showInitialSplash() {
@@ -862,6 +696,8 @@
             bombs.forEach(b => b.el.remove()); bombs = [];
             const overlay = document.getElementById('overlay'); 
             overlay.classList.remove('hidden', 'overlay-reg', 'overlay-sequence'); 
+            const area = document.getElementById('game-area'); 
+            area.style.backgroundImage = `url('${THEME.graphics.SPLASH}')`;
             document.getElementById('status-message').innerHTML = `
                 <div class="road-stack">
                     <p class="expo-header">THE EXPO'S TOP DASHER</p>
@@ -870,34 +706,19 @@
             `;
             updateLeaderboardUI();
             const btns = document.getElementById('difficulty-buttons'); btns.innerHTML = '';
-            const btn = document.createElement('button'); 
-            btn.className = "btn-pill shadow-xl"; btn.textContent = "Start Game";
+            const btn = document.createElement('button'); btn.className = "btn-pill shadow-xl"; btn.textContent = "Start Game";
             btn.onclick = (e) => { e.stopPropagation(); currentPlayer = null; showRegistration(); };
             btns.appendChild(btn);
         }
 
         function initGameElements() {
-            const area = document.getElementById('game-area');
-            area.style.backgroundImage = `url('${THEME.graphics.BACKGROUND}')`;
-            
+            const area = document.getElementById('game-area'); area.style.backgroundImage = `url('${THEME.graphics.BACKGROUND}')`;
             document.getElementById('mad-bomber-img').innerHTML = `
                 <img src="${THEME.graphics.BOMBER}" style="width: 100%; height: 100%;">
-                <div id="tray-food-container" style="
-                    position: absolute;
-                    top: ${CHEF_TRAY_TOP_PCT}%;
-                    left: 20.92%; 
-                    width: 41.2%; 
-                    aspect-ratio: 1/1;
-                    transform: translate(-50%, -100%);
-                    z-index: 101;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                ">
+                <div id="tray-food-container" style="position: absolute; top: ${CHEF_TRAY_TOP_PCT}%; left: 20.92%; width: 41.2%; aspect-ratio: 1/1; transform: translate(-50%, -100%); z-index: 101; display: flex; align-items: center; justify-content: center;">
                     <img id="tray-food-ready" src="${nextQueuedItem ? nextQueuedItem.imgSrc : ''}" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
             `;
-
             document.getElementById('waitress-container').innerHTML = `<img src="${THEME.graphics.WAITRESS}" style="width: 100%; height: 100%;">`;
             document.getElementById('life-icon').src = THEME.graphics.LIFE_HEART;
         }
@@ -907,33 +728,12 @@
             isPaused = !isPaused;
             const pauseOverlay = document.getElementById('pause-overlay');
             const overlay = document.getElementById('overlay');
-            
-            if (isPaused) {
-                // Hide ghosted content
-                document.getElementById('status-message').innerHTML = '';
-                document.getElementById('difficulty-buttons').innerHTML = '';
-                overlay.classList.remove('hidden', 'overlay-reg');
-                overlay.classList.add('overlay-sequence');
-                
-                pauseOverlay.style.display = 'block';
-                document.body.classList.add('paused');
-            } else {
-                pauseOverlay.style.display = 'none';
-                overlay.classList.add('hidden');
-                document.body.classList.remove('paused');
-            }
+            if (isPaused) { document.getElementById('status-message').innerHTML = ''; document.getElementById('difficulty-buttons').innerHTML = ''; overlay.classList.remove('hidden', 'overlay-reg'); overlay.classList.add('overlay-sequence'); pauseOverlay.style.display = 'block'; document.body.classList.add('paused'); } 
+            else { pauseOverlay.style.display = 'none'; overlay.classList.add('hidden'); document.body.classList.remove('paused'); }
         }
 
-        function handleInteraction(e) {
-            updateInteraction();
-            if (isGameOver || isPaused) return; 
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const rect = document.getElementById('game-area').getBoundingClientRect();
-            targetX = ((clientX - rect.left) / rect.width) * 100;
-        }
-
+        function handleInteraction(e) { updateInteraction(); if (isGameOver || isPaused) return; const clientX = e.touches ? e.touches[0].clientX : e.clientX; const rect = document.getElementById('game-area').getBoundingClientRect(); targetX = ((clientX - rect.left) / rect.width) * 100; }
         function updateInteraction() { lastInteractionTime = Date.now(); }
-
         function showToast(msg) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.style.opacity = '1'; setTimeout(() => { toast.style.opacity = '0'; }, 3000); }
         function triggerHaptic(ms) { if ("vibrate" in navigator) navigator.vibrate(ms); }
 
@@ -946,23 +746,8 @@
             area.addEventListener('mousemove', handleInteraction);
             area.addEventListener('touchstart', (e) => { if (!isGameOver) { e.preventDefault(); handleInteraction(e); } }, { passive: false });
             area.addEventListener('touchmove', (e) => { if (!isGameOver) { e.preventDefault(); handleInteraction(e); } }, { passive: false });
-            
-            window.addEventListener('keydown', (e) => {
-                updateInteraction();
-                if (e.key === ' ') {
-                    e.preventDefault();
-                    togglePause();
-                }
-            });
-
-            setInterval(() => {
-                if (isGameOver && !document.body.classList.contains('playing')) {
-                    if (Date.now() - lastInteractionTime > INACTIVITY_LIMIT) {
-                        const statusMsg = document.getElementById('status-message');
-                        if (!statusMsg.querySelector('.expo-header')) showInitialSplash();
-                    }
-                }
-            }, 1000);
+            window.addEventListener('keydown', (e) => { updateInteraction(); if (e.key === ' ') { if (document.activeElement && document.activeElement.tagName === 'INPUT') return; e.preventDefault(); togglePause(); } });
+            setInterval(() => { if (isGameOver && !document.body.classList.contains('playing')) { if (Date.now() - lastInteractionTime > INACTIVITY_LIMIT) { const statusMsg = document.getElementById('status-message'); if (!statusMsg.querySelector('.expo-header')) showInitialSplash(); } } }, 1000);
         };
     </script>
 </head>
@@ -977,23 +762,11 @@
                 </div>
             </div>
             <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Company</th>
-                        <th>Email</th>
-                        <th>Score</th>
-                        <th>Booster</th>
-                        <th>Caught</th>
-                        <th>Plays</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Score</th><th>Booster</th><th>Caught</th><th>Plays</th></tr></thead>
                 <tbody id="admin-tbody"></tbody>
             </table>
         </div>
-
         <div id="toast">Required fields empty!</div>
-        
         <div id="game-area">
             <div id="hud" class="flex justify-between items-start hidden">
                 <div class="flex flex-col text-left">
@@ -1010,20 +783,16 @@
                     </div>
                 </div>
             </div>
-
             <div id="gunk-overlay"></div>
             <div id="mad-bomber-img" class="character-container"></div>
             <div id="waitress-container" class="character-container"></div>
-            
             <div id="pause-overlay">
                 <p class="pause-text">GAME PAUSED</p>
                 <p class="pause-subtext">Press Space to Resume</p>
             </div>
-
             <div id="miss-overlay">
                 <p class="miss-text">FOOD ORDER LOST!</p>
             </div>
-
             <div id="overlay" class="game-status-overlay">
                 <div id="status-message" class="w-full flex flex-col items-center"></div>
                 <div id="difficulty-buttons" class="w-full flex flex-col items-center justify-center"></div>
