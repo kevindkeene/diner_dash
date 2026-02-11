@@ -42,6 +42,8 @@
             position: relative;
             width: 100%;
             flex-grow: 1;
+            /* Default splash background */
+            background-image: url('https://kevindkeene.github.io/diner_dash/assets/splash-screen.svg');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -59,13 +61,22 @@
             justify-content: flex-start; 
             z-index: 300;
             pointer-events: none;
+            transition: background 0.3s ease;
         }
 
-        .overlay-dark {
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(12px);
+        /* --- REGISTRATION OVERLAY (DARK + BLUR) --- */
+        .overlay-reg {
+            background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(15px);
             justify-content: center !important; 
             pointer-events: auto;
+        }
+
+        /* --- GAME SEQUENCE OVERLAY (LIGHTER + NO BLUR) --- */
+        .overlay-sequence {
+            background: rgba(0, 0, 0, 0.45);
+            justify-content: center !important;
+            pointer-events: none;
         }
 
         .road-stack {
@@ -229,48 +240,61 @@
 
         .bomb-img { position: absolute; z-index: 50; transform: translateX(-50%); }
 
-        /* --- MISS FEEDBACK ANIMATION --- */
+        /* --- FEEDBACK ANIMATIONS --- */
         @keyframes riseAndFade {
             0% { transform: translate(-50%, 0); opacity: 1; }
             100% { transform: translate(-50%, calc(var(--gu) * -10)); opacity: 0; }
         }
-        .floating-points, .floating-dead-heart {
+        .floating-points {
             position: absolute;
             pointer-events: none;
             z-index: 600;
             animation: riseAndFade 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
-        .floating-points {
             font-family: 'Bungee', cursive;
             color: #ffbf47;
             font-weight: 900;
             text-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
-        .floating-dead-heart {
-            width: calc(var(--gu) * 4);
-            height: calc(var(--gu) * 4);
-        }
 
-        #pause-overlay {
+        #pause-overlay, #miss-overlay {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.7);
             padding: calc(var(--gu)*2) calc(var(--gu)*4);
             border-radius: calc(var(--gu)*1);
-            border: 2px solid #ffbf47;
             z-index: 700;
             display: none;
             pointer-events: none;
             text-align: center;
         }
-        .pause-text {
+        
+        #pause-overlay {
+            background: rgba(0,0,0,0.7);
+            border: 2px solid #ffbf47;
+        }
+        
+        #miss-overlay {
+            background: rgba(239, 68, 68, 0.9);
+            border: 2px solid #fff;
+        }
+
+        .pause-text, .miss-text {
             font-family: 'Bungee', cursive;
-            font-size: calc(var(--gu)*5);
-            color: #ffbf47;
             margin-bottom: calc(var(--gu)*0.5);
         }
+        
+        .pause-text {
+            font-size: calc(var(--gu)*5);
+            color: #ffbf47;
+        }
+        
+        .miss-text {
+            font-size: calc(var(--gu)*4);
+            color: #fff;
+            margin-bottom: 0;
+        }
+
         .pause-subtext {
             font-size: calc(var(--gu)*1.2);
             text-transform: uppercase;
@@ -317,7 +341,6 @@
                     { file: '50s-burger.svg', value: 50 }
                 ],
                 LIFE_HEART: ASSETS_PATH + 'glossy-heart.svg', 
-                DEAD_HEART: ASSETS_PATH + 'glossy-heart-dead.svg',
                 BACKGROUND: ASSETS_PATH + 'diner-inside.svg',
                 SLIME: ASSETS_PATH + 'slimeball.gif',
                 SPLASH: ASSETS_PATH + 'splash-screen.svg'
@@ -476,6 +499,12 @@
             
             isGameOver = false; isCountdownActive = true; isMissSequence = false; isPaused = false;
             document.getElementById('pause-overlay').style.display = 'none';
+            document.getElementById('miss-overlay').style.display = 'none';
+            
+            // Clear UI Ghosting
+            document.getElementById('status-message').innerHTML = '';
+            document.getElementById('difficulty-buttons').innerHTML = '';
+            
             countdownValue = 5; countdownTimer = performance.now();
             document.body.classList.add('playing');
             document.getElementById('hud').classList.remove('hidden');
@@ -486,7 +515,11 @@
             rollNextItem();
             initGameElements();
             updateStats();
-            document.getElementById('overlay').classList.remove('hidden');
+            
+            const overlay = document.getElementById('overlay');
+            overlay.classList.remove('hidden', 'overlay-reg'); 
+            overlay.classList.add('overlay-sequence');
+            
             cancelAnimationFrame(animationFrameHandle);
             gameLoop();
         }
@@ -506,7 +539,8 @@
 
         function showRegistration() {
             const overlay = document.getElementById('overlay');
-            overlay.classList.remove('hidden'); overlay.classList.add('overlay-dark');
+            overlay.classList.remove('hidden', 'overlay-sequence'); 
+            overlay.classList.add('overlay-reg');
             document.getElementById('hud').classList.add('hidden');
             
             document.getElementById('status-message').innerHTML = `
@@ -591,16 +625,18 @@
             if (isMissSequence) {
                 if (frame % 12 === 0 && bombs.length > 0) {
                     const b = bombs.pop();
-                    createFloatingDeadHeart(b.x, b.y);
                     b.el.remove();
                     triggerHaptic(100);
                 }
                 if (bombs.length === 0 && frame % 100 === 0) {
                     isMissSequence = false;
+                    document.getElementById('miss-overlay').style.display = 'none';
                     if (lives <= 0) endGame();
                     else {
                         isCountdownActive = true; countdownValue = 3; countdownTimer = performance.now();
-                        document.getElementById('overlay').classList.remove('hidden');
+                        const overlay = document.getElementById('overlay');
+                        overlay.classList.remove('hidden');
+                        overlay.classList.add('overlay-sequence');
                     }
                 }
             } else if (isCountdownActive) {
@@ -609,7 +645,13 @@
                 const status = document.getElementById('status-message');
                 if (countdownValue > 0) status.innerHTML = `<div class="road-stack"><p class="countdown-text">${countdownValue}</p></div>`;
                 else if (countdownValue === 0) status.innerHTML = `<div class="road-stack"><p class="countdown-text">GO!</p></div>`;
-                else { isCountdownActive = false; document.getElementById('overlay').classList.add('hidden'); }
+                else { 
+                    isCountdownActive = false; 
+                    status.innerHTML = ''; 
+                    const overlay = document.getElementById('overlay');
+                    overlay.classList.add('hidden'); 
+                    overlay.classList.remove('overlay-sequence');
+                }
             } else {
                 if (gunkTimeRemaining > 0) { 
                     gunkTimeRemaining -= 16; 
@@ -697,7 +739,16 @@
             if (isMissSequence) return;
             isMissSequence = true; triggerHaptic(300); lives--;
             updateStats();
-            createFloatingDeadHeart(b.x, 90);
+            
+            document.getElementById('status-message').innerHTML = '';
+            document.getElementById('difficulty-buttons').innerHTML = '';
+            
+            const overlay = document.getElementById('overlay');
+            overlay.classList.remove('hidden', 'overlay-reg');
+            overlay.classList.add('overlay-sequence');
+            
+            document.getElementById('miss-overlay').style.display = 'block';
+            
             b.el.remove(); bombs.splice(idx, 1);
 
             const waitressImg = document.querySelector('#waitress-container img');
@@ -713,6 +764,7 @@
             cancelAnimationFrame(animationFrameHandle);
             document.body.classList.remove('playing'); 
             document.getElementById('pause-overlay').style.display = 'none';
+            document.getElementById('miss-overlay').style.display = 'none';
             
             await updateFinalStats();
             
@@ -723,7 +775,7 @@
             document.getElementById('hud').classList.add('hidden'); 
             
             const overlay = document.getElementById('overlay');
-            overlay.classList.remove('hidden'); overlay.classList.remove('overlay-dark'); 
+            overlay.classList.remove('hidden', 'overlay-reg', 'overlay-sequence'); 
             document.getElementById('status-message').innerHTML = `
                 <div class="road-stack">
                     <p class="go-title">GAME OVER</p>
@@ -752,16 +804,6 @@
             el.style.left = `${x}%`; el.style.top = `${y}%`; 
             el.style.fontSize = `calc(var(--gu)*3)`; 
             el.textContent = text;
-            document.getElementById('game-area').appendChild(el);
-            setTimeout(() => el.remove(), 1000);
-        }
-
-        function createFloatingDeadHeart(x, y) {
-            const el = document.createElement('div');
-            el.className = 'floating-dead-heart';
-            el.style.left = `${x}%`;
-            el.style.top = `${y}%`;
-            el.innerHTML = `<img src="${THEME.graphics.DEAD_HEART}" style="width: 100%; height: 100%; object-fit: contain;">`;
             document.getElementById('game-area').appendChild(el);
             setTimeout(() => el.remove(), 1000);
         }
@@ -816,10 +858,11 @@
             isGameOver = true; isCountdownActive = false; isMissSequence = false; isPaused = false;
             document.body.classList.remove('playing'); document.getElementById('hud').classList.add('hidden');
             document.getElementById('pause-overlay').style.display = 'none';
+            document.getElementById('miss-overlay').style.display = 'none';
             document.getElementById('mad-bomber-img').innerHTML = ''; document.getElementById('waitress-container').innerHTML = '';
             bombs.forEach(b => b.el.remove()); bombs = [];
             const overlay = document.getElementById('overlay'); 
-            overlay.classList.remove('hidden'); overlay.classList.remove('overlay-dark'); 
+            overlay.classList.remove('hidden', 'overlay-reg', 'overlay-sequence'); 
             const area = document.getElementById('game-area'); 
             area.style.backgroundImage = `url('${THEME.graphics.SPLASH}')`;
             document.getElementById('status-message').innerHTML = `
@@ -866,11 +909,19 @@
             if (isGameOver || isCountdownActive || isMissSequence) return;
             isPaused = !isPaused;
             const pauseOverlay = document.getElementById('pause-overlay');
+            const overlay = document.getElementById('overlay');
+            
             if (isPaused) {
+                document.getElementById('status-message').innerHTML = '';
+                document.getElementById('difficulty-buttons').innerHTML = '';
+                overlay.classList.remove('hidden', 'overlay-reg');
+                overlay.classList.add('overlay-sequence');
+                
                 pauseOverlay.style.display = 'block';
                 document.body.classList.add('paused');
             } else {
                 pauseOverlay.style.display = 'none';
+                overlay.classList.add('hidden');
                 document.body.classList.remove('paused');
             }
         }
@@ -901,6 +952,10 @@
             window.addEventListener('keydown', (e) => {
                 updateInteraction();
                 if (e.key === ' ') {
+                    // Check if focus is in an input field
+                    if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+                        return; // Let the space bar work normally for typing
+                    }
                     e.preventDefault();
                     togglePause();
                 }
@@ -969,6 +1024,10 @@
             <div id="pause-overlay">
                 <p class="pause-text">GAME PAUSED</p>
                 <p class="pause-subtext">Press Space to Resume</p>
+            </div>
+
+            <div id="miss-overlay">
+                <p class="miss-text">FOOD ORDER LOST!</p>
             </div>
 
             <div id="overlay" class="game-status-overlay">
