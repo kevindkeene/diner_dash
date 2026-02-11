@@ -42,7 +42,6 @@
             position: relative;
             width: 100%;
             flex-grow: 1;
-            /* Default splash background */
             background-image: url('https://kevindkeene.github.io/diner_dash/assets/splash-screen.svg');
             background-size: cover;
             background-position: center;
@@ -93,7 +92,6 @@
             gap: calc(var(--gu) * 0.8);
         }
 
-        /* --- TOP SCORE DISPLAY STYLES --- */
         .leaderboard-card {
             background: rgba(20, 20, 20, 0.8);
             padding: calc(var(--gu) * 0.5) calc(var(--gu) * 3);
@@ -239,7 +237,6 @@
 
         .bomb-img { position: absolute; z-index: 50; transform: translateX(-50%); }
 
-        /* --- MISS FEEDBACK ANIMATIONS --- */
         @keyframes riseAndFade {
             0% { transform: translate(-50%, 0); opacity: 1; }
             100% { transform: translate(-50%, calc(var(--gu) * -10)); opacity: 0; }
@@ -339,37 +336,35 @@
         let allLeads = [];
         let allScores = [];
 
-        // Initialize Firebase
-        try {
-            if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
+        // Initialize Firebase - MANDATORY RULE 3 COMPLIANCE
+        const initFirebase = async () => {
+            try {
+                if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+                    const app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
 
-                const initAuth = async () => {
-                    try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
+                    // Call Auth FIRST
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    // Set up listener
+                    onAuthStateChanged(auth, (u) => {
+                        user = u;
+                        if (u) {
+                            fetchLeads();
+                            fetchLeaderboards();
                         }
-                    } catch (e) {
-                        console.warn("Auth failed, continuing in Arcade Mode.");
-                    }
-                };
-                initAuth();
-
-                onAuthStateChanged(auth, (u) => {
-                    user = u;
-                    if (u) {
-                        fetchLeads();
-                        fetchLeaderboards();
-                    }
-                });
+                    });
+                }
+            } catch (e) {
+                console.warn("Firebase Init failed. Arcade Mode Active.");
             }
-        } catch (e) {
-            console.warn("Firebase Init failed. Using Arcade Mode.");
-        }
+        };
+        initFirebase();
 
         let score = 0, lives = 3, frame = 0, bombs = [];
         let bucketX = 50, targetX = 50, madBomberX = 50, madBomberDirection = 1;
@@ -398,31 +393,26 @@
 
         function fetchLeads() {
             if (!db || !user) return;
-            try {
-                const q = collection(db, 'artifacts', appId, 'public', 'data', 'leads');
-                onSnapshot(q, (snapshot) => {
-                    allLeads = [];
-                    snapshot.forEach(doc => allLeads.push({ id: doc.id, ...doc.data() }));
-                }, (err) => console.warn("Firestore leads load error."));
-            } catch (e) {}
+            const q = collection(db, 'artifacts', appId, 'public', 'data', 'leads');
+            onSnapshot(q, (snapshot) => {
+                allLeads = [];
+                snapshot.forEach(doc => allLeads.push({ id: doc.id, ...doc.data() }));
+            }, (err) => console.warn("Firestore leads load error. Check rules."));
         }
 
         async function fetchLeaderboards() {
             if (!db || !user) return;
-            try {
-                const q = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
-                onSnapshot(q, (snapshot) => {
-                    allScores = [];
-                    snapshot.forEach(doc => allScores.push(doc.data()));
-                    if (isGameOver) updateLeaderboardUI();
-                }, (err) => console.warn("Leaderboard load error."));
-            } catch (e) {}
+            const q = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+            onSnapshot(q, (snapshot) => {
+                allScores = [];
+                snapshot.forEach(doc => allScores.push(doc.data()));
+                if (isGameOver) updateLeaderboardUI();
+            }, (err) => console.warn("Leaderboard load error. Check rules."));
         }
 
         function updateLeaderboardUI() {
             const container = document.getElementById('daily-leaderboard');
             if (!container) return;
-            // Note: Rule 2 mandates sorting in memory
             const topOne = [...allScores].sort((a, b) => b.score - a.score).slice(0, 1);
             if (topOne.length === 0) {
                 container.innerHTML = `<p class="opacity-40 italic text-center" style="font-size: calc(var(--gu)*1.5)">Waiting for the first Dasher...</p>`;
@@ -451,35 +441,35 @@
                 if (existingLead) {
                     const newPlayCount = (existingLead.playCount || 0) + 1;
                     const leadDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leads', existingLead.id);
-                    retryWrite(() => updateDoc(leadDoc, { playCount: newPlayCount, lastPlayed: Date.now(), name: playerData.name, company: playerData.company }));
+                    await retryWrite(() => updateDoc(leadDoc, { playCount: newPlayCount, lastPlayed: Date.now(), name: playerData.name, company: playerData.company }));
                     currentPlayer = { ...existingLead, name: playerData.name, company: playerData.company, playCount: newPlayCount };
                 } else {
                     const leadId = playerData.email.replace(/[^a-zA-Z0-9]/g, '_');
                     const leadDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leads', leadId);
                     const newPlayer = { ...playerData, playCount: 1, timestamp: Date.now(), lastPlayed: Date.now(), maxScore: 0, maxBooster: 1, totalCaught: 0 };
-                    retryWrite(() => setDoc(leadDoc, newPlayer));
+                    await retryWrite(() => setDoc(leadDoc, newPlayer));
                 }
             } catch (e) {
-                console.warn("DB write failed. Staying in local mode.");
+                console.warn("DB write failed. Player cached locally.");
             }
         }
 
         async function updateFinalStats() {
             if (!db || !user || !currentPlayer) return;
             try {
-                // Save individual score for leaderboard
                 const scoreId = `${user.uid}_${Date.now()}`;
-                retryWrite(() => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'scores', scoreId), { userId: user.uid, name: currentPlayer.name, company: currentPlayer.company, score, timestamp: Date.now() }));
+                await retryWrite(() => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'scores', scoreId), { userId: user.uid, name: currentPlayer.name, company: currentPlayer.company, score, timestamp: Date.now() }));
                 
-                // We still save to the unique lead record for expo analytics
                 const leadId = currentPlayer.email.replace(/[^a-zA-Z0-9]/g, '_');
                 const leadDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leads', leadId);
-                retryWrite(() => updateDoc(leadDoc, { 
+                await retryWrite(() => updateDoc(leadDoc, { 
                     maxScore: Math.max(currentPlayer.maxScore || 0, score), 
                     maxBooster: Math.max(currentPlayer.maxBooster || 1, Math.floor(difficultyFactor)), 
                     totalCaught: (currentPlayer.totalCaught || 0) + totalItemsCaught 
                 }));
-            } catch (e) {}
+            } catch (e) {
+                console.warn("Final score sync failed.");
+            }
         }
 
         async function startGame() {
@@ -546,6 +536,8 @@
                 if (!emailRegex.test(email)) { showToast("Invalid email format!"); return; }
                 const toTitleCase = (str) => str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
                 name = toTitleCase(name); company = toTitleCase(company);
+                
+                // NON-BLOCKING: Register and start immediately
                 registerOrUpdatePlayer({ name, company, email });
                 startGame();
             };
