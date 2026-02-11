@@ -131,7 +131,7 @@
         }
         .btn-pill:active { transform: scale(0.95); }
         .btn-pill:hover { filter: brightness(1.1); }
-        .btn-pill:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+        .btn-pill:disabled { opacity: 0.7; cursor: pointer; }
 
         .btn-secondary {
             background: transparent;
@@ -326,11 +326,22 @@
         let allLeads = [];
         let allScores = [];
         let isAuthInitiated = false;
+        let isArcadeMode = false;
 
-        // Initialize Firebase - MANDATORY RULE 3 COMPLIANCE
+        // Initialize Firebase - MANDATORY RULE 3 COMPLIANCE with Fail-Safe Timeout
         const initFirebase = async () => {
             if (isAuthInitiated) return;
             isAuthInitiated = true;
+            
+            // Set a Fail-Safe Timer: Enable button after 4 seconds even if Firebase hangs
+            setTimeout(() => {
+                if (!user) {
+                    console.warn("Connection slow. Enabling Arcade Mode.");
+                    isArcadeMode = true;
+                    enableStartButton();
+                }
+            }, 4000);
+
             try {
                 if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
                     const app = initializeApp(firebaseConfig);
@@ -351,19 +362,28 @@
                         if (u) {
                             fetchLeads();
                             fetchLeaderboards();
-                            // Enable start button if it was disabled
-                            const startBtn = document.getElementById('final-start-btn');
-                            if (startBtn) {
-                                startBtn.disabled = false;
-                                startBtn.textContent = "Start Game";
-                            }
+                            enableStartButton();
                         }
                     });
+                } else {
+                    isArcadeMode = true;
+                    enableStartButton();
                 }
             } catch (e) {
                 console.warn("Firebase Init failed. Arcade Mode Active.");
+                isArcadeMode = true;
+                enableStartButton();
             }
         };
+
+        function enableStartButton() {
+            const startBtn = document.getElementById('final-start-btn');
+            if (startBtn) {
+                startBtn.disabled = false;
+                startBtn.textContent = "Start Game";
+            }
+        }
+
         initFirebase();
 
         let score = 0, lives = 3, frame = 0, bombs = [];
@@ -397,9 +417,8 @@
             onSnapshot(q, (snapshot) => {
                 allLeads = [];
                 snapshot.forEach(doc => allLeads.push({ id: doc.id, ...doc.data() }));
-                // Merge with session backup for UI
                 syncSessionBackup();
-            }, (err) => console.warn("Firestore leads load error. Check rules."));
+            }, (err) => console.warn("Leads fetch error. Local backup used."));
         }
 
         async function fetchLeaderboards() {
@@ -409,7 +428,7 @@
                 allScores = [];
                 snapshot.forEach(doc => allScores.push(doc.data()));
                 if (isGameOver) updateLeaderboardUI();
-            }, (err) => console.warn("Leaderboard load error. Check rules."));
+            }, (err) => console.warn("Leaderboard error."));
         }
 
         function syncSessionBackup() {
@@ -459,8 +478,6 @@
             try {
                 const leadId = playerData.email.replace(/[^a-zA-Z0-9]/g, '_');
                 const leadDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leads', leadId);
-                
-                // Use setDoc with merge: true for maximum resilience
                 await retryWrite(() => setDoc(leadDoc, { 
                     ...playerData, 
                     lastPlayed: Date.now(),
@@ -557,8 +574,8 @@
             const startBtn = document.createElement('button');
             startBtn.id = "final-start-btn";
             startBtn.className = "btn-pill w-[85%] max-w-xl mx-auto";
-            startBtn.textContent = user ? "Start Game" : "Connecting...";
-            startBtn.disabled = !user; // Resilient start
+            startBtn.textContent = user || isArcadeMode ? "Start Game" : "Connecting...";
+            startBtn.disabled = !user && !isArcadeMode;
             
             startBtn.onclick = async (e) => {
                 e.stopPropagation();
@@ -586,7 +603,6 @@
                 name = toTitleCase(name);
                 company = toTitleCase(company);
                 
-                // Process immediately for low latency
                 await registerOrUpdatePlayer({ name, company, email });
                 startGame();
             };
