@@ -86,13 +86,13 @@
 
         .leaderboard-card {
             background: rgba(20, 20, 20, 0.8);
-            padding: calc(var(--gu) * 1.5) calc(var(--gu) * 3);
+            padding: calc(var(--gu) * 0.5) calc(var(--gu) * 3);
             border-radius: calc(var(--gu) * 1);
             display: flex;
             justify-content: space-between;
             align-items: center;
             width: 90%;
-            max-width: calc(var(--gu) * 85);
+            max-width: calc(var(--gu) * 75);
             box-shadow: 0 10px 30px rgba(0,0,0,0.8);
             border: 1px solid rgba(255,255,255,0.05);
             margin-bottom: calc(var(--gu) * 1);
@@ -228,21 +228,55 @@
         }
 
         .bomb-img { position: absolute; z-index: 50; transform: translateX(-50%); }
-        .explosion-img { position: absolute; z-index: 200; pointer-events: none; transform: translate(-50%, -50%); width: calc(var(--gu) * 15); }
 
+        /* --- MISS FEEDBACK ANIMATION --- */
         @keyframes riseAndFade {
             0% { transform: translate(-50%, 0); opacity: 1; }
             100% { transform: translate(-50%, calc(var(--gu) * -10)); opacity: 0; }
         }
-        .floating-points {
+        .floating-points, .floating-dead-heart {
             position: absolute;
+            pointer-events: none;
+            z-index: 600;
+            animation: riseAndFade 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .floating-points {
             font-family: 'Bungee', cursive;
             color: #ffbf47;
             font-weight: 900;
-            pointer-events: none;
-            z-index: 600;
             text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-            animation: riseAndFade 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .floating-dead-heart {
+            width: calc(var(--gu) * 8);
+            height: calc(var(--gu) * 8);
+        }
+
+        #pause-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            padding: calc(var(--gu)*2) calc(var(--gu)*4);
+            border-radius: calc(var(--gu)*1);
+            border: 2px solid #ffbf47;
+            z-index: 700;
+            display: none;
+            pointer-events: none;
+            text-align: center;
+        }
+        .pause-text {
+            font-family: 'Bungee', cursive;
+            font-size: calc(var(--gu)*5);
+            color: #ffbf47;
+            margin-bottom: calc(var(--gu)*0.5);
+        }
+        .pause-subtext {
+            font-size: calc(var(--gu)*1.2);
+            text-transform: uppercase;
+            font-weight: 900;
+            letter-spacing: 0.2em;
+            color: #fff;
         }
 
         #toast {
@@ -262,6 +296,7 @@
         }
 
         .playing #game-area { cursor: none; }
+        .playing.paused #game-area { cursor: default; }
     </style>
     
     <script type="module">
@@ -281,11 +316,11 @@
                     { file: '50s-shake.svg', value: 25 },
                     { file: '50s-burger.svg', value: 50 }
                 ],
-                BUCKET: ASSETS_PATH + 'bucket.gif', 
+                LIFE_HEART: ASSETS_PATH + 'glossy-heart.svg', 
+                DEAD_HEART: ASSETS_PATH + 'glossy-heart-dead.svg',
                 BACKGROUND: ASSETS_PATH + 'diner-inside.svg',
                 SLIME: ASSETS_PATH + 'slimeball.gif',
-                SPLASH: ASSETS_PATH + 'splash-screen.svg',
-                EXPLOSION: ASSETS_PATH + 'explosion320x256.gif'
+                SPLASH: ASSETS_PATH + 'splash-screen.svg'
             }
         };
 
@@ -320,7 +355,7 @@
         let score = 0, lives = 3, frame = 0, bombs = [];
         let bucketX = 50, targetX = 50, madBomberX = 50, madBomberDirection = 1;
         let totalItemsCaught = 0, difficultyFactor = 1, gunkTimeRemaining = 0, animationFrameHandle, allScores = [];
-        let isGameOver = true, isCountdownActive = false, isMissSequence = false;
+        let isGameOver = true, isCountdownActive = false, isMissSequence = false, isPaused = false;
         let countdownTimer = 0, countdownValue = 5, adminClicks = 0;
         let lastInteractionTime = Date.now();
         const INACTIVITY_LIMIT = 20000; 
@@ -385,7 +420,6 @@
 
         async function registerOrUpdatePlayer(playerData) {
             if (!db || !user) return;
-            // Rule 2: Filter in memory
             const existingLead = allLeads.find(l => l.email === playerData.email);
             
             if (existingLead) {
@@ -393,9 +427,11 @@
                 const leadDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leads', existingLead.id);
                 await retryWrite(() => updateDoc(leadDoc, { 
                     playCount: newPlayCount,
-                    lastPlayed: Date.now()
+                    lastPlayed: Date.now(),
+                    name: playerData.name,
+                    company: playerData.company
                 }));
-                currentPlayer = { ...existingLead, playCount: newPlayCount };
+                currentPlayer = { ...existingLead, name: playerData.name, company: playerData.company, playCount: newPlayCount };
             } else {
                 const leadId = playerData.email.replace(/[^a-zA-Z0-9]/g, '_');
                 const leadDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leads', leadId);
@@ -416,7 +452,6 @@
         async function updateFinalStats() {
             if (!db || !user || !currentPlayer) return;
             
-            // Save individual score for leaderboard
             const scoreId = `${user.uid}_${Date.now()}`;
             await retryWrite(() => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'scores', scoreId), {
                 userId: user.uid,
@@ -426,7 +461,6 @@
                 timestamp: Date.now()
             }));
 
-            // Update lead profile with latest session bests
             const leadId = currentPlayer.email.replace(/[^a-zA-Z0-9]/g, '_');
             const leadDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leads', leadId);
             
@@ -440,7 +474,8 @@
         async function startGame() {
             if (!currentPlayer) { showRegistration(); return; }
             
-            isGameOver = false; isCountdownActive = true; isMissSequence = false;
+            isGameOver = false; isCountdownActive = true; isMissSequence = false; isPaused = false;
+            document.getElementById('pause-overlay').style.display = 'none';
             countdownValue = 5; countdownTimer = performance.now();
             document.body.classList.add('playing');
             document.getElementById('hud').classList.remove('hidden');
@@ -497,10 +532,29 @@
             startBtn.textContent = "Start Game";
             startBtn.onclick = async (e) => {
                 e.stopPropagation();
-                const name = document.getElementById('reg-name').value.trim();
-                const company = document.getElementById('reg-company').value.trim();
-                const email = document.getElementById('reg-email').value.trim();
-                if (!name || !company || !email) { showToast("Required fields empty!"); return; }
+                let name = document.getElementById('reg-name').value.trim();
+                let company = document.getElementById('reg-company').value.trim();
+                const email = document.getElementById('reg-email').value.trim().toLowerCase();
+
+                if (!name || !company || !email) { 
+                    showToast("Required fields empty!"); 
+                    return; 
+                }
+
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    showToast("Invalid email format!");
+                    return;
+                }
+
+                const toTitleCase = (str) => {
+                    return str.split(' ')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                        .join(' ');
+                };
+
+                name = toTitleCase(name);
+                company = toTitleCase(company);
                 
                 await registerOrUpdatePlayer({ name, company, email });
                 startGame();
@@ -517,6 +571,12 @@
 
         function gameLoop() {
             if (isGameOver) return;
+            
+            if (isPaused) {
+                animationFrameHandle = requestAnimationFrame(gameLoop);
+                return;
+            }
+
             frame++;
             difficultyFactor = 1 + (totalItemsCaught * 0.05);
 
@@ -531,7 +591,7 @@
             if (isMissSequence) {
                 if (frame % 12 === 0 && bombs.length > 0) {
                     const b = bombs.pop();
-                    createExplosion(b.x, b.y);
+                    createFloatingDeadHeart(b.x, b.y);
                     b.el.remove();
                     triggerHaptic(100);
                 }
@@ -637,7 +697,7 @@
             if (isMissSequence) return;
             isMissSequence = true; triggerHaptic(300); lives--;
             updateStats();
-            createExplosion(b.x, 90);
+            createFloatingDeadHeart(b.x, 90);
             b.el.remove(); bombs.splice(idx, 1);
 
             const waitressImg = document.querySelector('#waitress-container img');
@@ -649,9 +709,10 @@
         }
 
         async function endGame() {
-            isGameOver = true; isCountdownActive = false; isMissSequence = false;
+            isGameOver = true; isCountdownActive = false; isMissSequence = false; isPaused = false;
             cancelAnimationFrame(animationFrameHandle);
             document.body.classList.remove('playing'); 
+            document.getElementById('pause-overlay').style.display = 'none';
             
             await updateFinalStats();
             
@@ -695,13 +756,22 @@
             setTimeout(() => el.remove(), 1000);
         }
 
+        function createFloatingDeadHeart(x, y) {
+            const el = document.createElement('div');
+            el.className = 'floating-dead-heart';
+            el.style.left = `${x}%`;
+            el.style.top = `${y}%`;
+            el.innerHTML = `<img src="${THEME.graphics.DEAD_HEART}" style="width: 100%; height: 100%; object-fit: contain;">`;
+            document.getElementById('game-area').appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
         function openAdminPanel() {
             const panel = document.getElementById('admin-panel');
             panel.style.display = 'block';
             const tbody = document.getElementById('admin-tbody');
             
             let html = '';
-            // Sort by most recently played for admin view
             const sortedLeads = [...allLeads].sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0));
             
             sortedLeads.forEach(data => {
@@ -743,8 +813,9 @@
         }
 
         function showInitialSplash() {
-            isGameOver = true; isCountdownActive = false; isMissSequence = false;
+            isGameOver = true; isCountdownActive = false; isMissSequence = false; isPaused = false;
             document.body.classList.remove('playing'); document.getElementById('hud').classList.add('hidden');
+            document.getElementById('pause-overlay').style.display = 'none';
             document.getElementById('mad-bomber-img').innerHTML = ''; document.getElementById('waitress-container').innerHTML = '';
             bombs.forEach(b => b.el.remove()); bombs = [];
             const overlay = document.getElementById('overlay'); 
@@ -788,25 +859,31 @@
             `;
 
             document.getElementById('waitress-container').innerHTML = `<img src="${THEME.graphics.WAITRESS}" style="width: 100%; height: 100%;">`;
-            document.getElementById('life-icon').src = THEME.graphics.BUCKET;
+            document.getElementById('life-icon').src = THEME.graphics.LIFE_HEART;
         }
 
-        function createExplosion(x, y) {
-            const ex = document.createElement('div');
-            ex.className = 'explosion-img';
-            ex.style.left = `${x}%`; ex.style.top = `${y}%`;
-            ex.innerHTML = `<img src="${THEME.graphics.EXPLOSION}" class="w-full">`;
-            document.getElementById('game-area').appendChild(ex);
-            setTimeout(() => ex.remove(), 800);
+        function togglePause() {
+            if (isGameOver || isCountdownActive || isMissSequence) return;
+            isPaused = !isPaused;
+            const pauseOverlay = document.getElementById('pause-overlay');
+            if (isPaused) {
+                pauseOverlay.style.display = 'block';
+                document.body.classList.add('paused');
+            } else {
+                pauseOverlay.style.display = 'none';
+                document.body.classList.remove('paused');
+            }
         }
 
         function handleInteraction(e) {
-            lastInteractionTime = Date.now();
-            if (isGameOver) return; 
+            updateInteraction();
+            if (isGameOver || isPaused) return; 
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const rect = document.getElementById('game-area').getBoundingClientRect();
             targetX = ((clientX - rect.left) / rect.width) * 100;
         }
+
+        function updateInteraction() { lastInteractionTime = Date.now(); }
 
         function showToast(msg) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.style.opacity = '1'; setTimeout(() => { toast.style.opacity = '0'; }, 3000); }
         function triggerHaptic(ms) { if ("vibrate" in navigator) navigator.vibrate(ms); }
@@ -821,6 +898,14 @@
             area.addEventListener('touchstart', (e) => { if (!isGameOver) { e.preventDefault(); handleInteraction(e); } }, { passive: false });
             area.addEventListener('touchmove', (e) => { if (!isGameOver) { e.preventDefault(); handleInteraction(e); } }, { passive: false });
             
+            window.addEventListener('keydown', (e) => {
+                updateInteraction();
+                if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePause();
+                }
+            });
+
             setInterval(() => {
                 if (isGameOver && !document.body.classList.contains('playing')) {
                     if (Date.now() - lastInteractionTime > INACTIVITY_LIMIT) {
@@ -834,7 +919,6 @@
 </head>
 <body>
     <div id="game-container">
-        <!-- Admin Dashboard -->
         <div id="admin-panel">
             <div class="flex justify-between items-center border-b border-gray-700 pb-4">
                 <h1 class="text-2xl font-black text-yellow-500">PLAYER ANALYTICS</h1>
@@ -882,6 +966,11 @@
             <div id="mad-bomber-img" class="character-container"></div>
             <div id="waitress-container" class="character-container"></div>
             
+            <div id="pause-overlay">
+                <p class="pause-text">GAME PAUSED</p>
+                <p class="pause-subtext">Press Space to Resume</p>
+            </div>
+
             <div id="overlay" class="game-status-overlay">
                 <div id="status-message" class="w-full flex flex-col items-center"></div>
                 <div id="difficulty-buttons" class="w-full flex flex-col items-center justify-center"></div>
