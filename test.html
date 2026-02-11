@@ -42,6 +42,7 @@
             position: relative;
             width: 100%;
             flex-grow: 1;
+            /* Default splash background */
             background-image: url('https://kevindkeene.github.io/diner_dash/assets/splash-screen.svg');
             background-size: cover;
             background-position: center;
@@ -91,6 +92,26 @@
             flex-direction: column;
             gap: calc(var(--gu) * 0.8);
         }
+
+        /* --- TOP SCORE DISPLAY STYLES --- */
+        .leaderboard-card {
+            background: rgba(20, 20, 20, 0.8);
+            padding: calc(var(--gu) * 0.5) calc(var(--gu) * 3);
+            border-radius: calc(var(--gu) * 1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 90%;
+            max-width: calc(var(--gu) * 75);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: calc(var(--gu) * 1);
+        }
+
+        .lb-rank { font-size: calc(var(--gu) * 4); color: #ffbf47; font-family: 'Bungee', cursive; margin-right: calc(var(--gu) * 2.5); }
+        .lb-name { font-size: calc(var(--gu) * 2.8); font-weight: 900; text-transform: uppercase; color: #fff; line-height: 1; }
+        .lb-company { font-size: calc(var(--gu) * 1); font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.15em; margin-top: calc(var(--gu) * 0.2); }
+        .lb-score { font-size: calc(var(--gu) * 5); font-weight: 900; color: #ffbf47; font-family: monospace; }
 
         .btn-pill {
             padding: calc(var(--gu) * 0.8) calc(var(--gu) * 6);
@@ -218,7 +239,7 @@
 
         .bomb-img { position: absolute; z-index: 50; transform: translateX(-50%); }
 
-        /* --- FEEDBACK ANIMATIONS --- */
+        /* --- MISS FEEDBACK ANIMATIONS --- */
         @keyframes riseAndFade {
             0% { transform: translate(-50%, 0); opacity: 1; }
             100% { transform: translate(-50%, calc(var(--gu) * -10)); opacity: 0; }
@@ -316,6 +337,7 @@
         
         let db, auth, user = null, currentPlayer = null;
         let allLeads = [];
+        let allScores = [];
 
         // Initialize Firebase
         try {
@@ -341,6 +363,7 @@
                     user = u;
                     if (u) {
                         fetchLeads();
+                        fetchLeaderboards();
                     }
                 });
             }
@@ -384,6 +407,41 @@
             } catch (e) {}
         }
 
+        async function fetchLeaderboards() {
+            if (!db || !user) return;
+            try {
+                const q = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+                onSnapshot(q, (snapshot) => {
+                    allScores = [];
+                    snapshot.forEach(doc => allScores.push(doc.data()));
+                    if (isGameOver) updateLeaderboardUI();
+                }, (err) => console.warn("Leaderboard load error."));
+            } catch (e) {}
+        }
+
+        function updateLeaderboardUI() {
+            const container = document.getElementById('daily-leaderboard');
+            if (!container) return;
+            // Note: Rule 2 mandates sorting in memory
+            const topOne = [...allScores].sort((a, b) => b.score - a.score).slice(0, 1);
+            if (topOne.length === 0) {
+                container.innerHTML = `<p class="opacity-40 italic text-center" style="font-size: calc(var(--gu)*1.5)">Waiting for the first Dasher...</p>`;
+                return;
+            }
+            container.innerHTML = topOne.map((s) => `
+                <div class="leaderboard-card mx-auto">
+                    <div class="flex items-center">
+                        <span class="lb-rank">#1</span>
+                        <div class="text-left">
+                            <p class="lb-name">${s.name || 'Dash'}</p>
+                            <p class="lb-company">${s.company || '---'}</p>
+                        </div>
+                    </div>
+                    <div class="text-right"><p class="lb-score">${s.score.toLocaleString()}</p></div>
+                </div>
+            `).join('');
+        }
+
         async function registerOrUpdatePlayer(playerData) {
             currentPlayer = { ...playerData, playCount: 1, maxScore: 0, maxBooster: 1, totalCaught: 0 };
             if (!db || !user) return;
@@ -409,6 +467,10 @@
         async function updateFinalStats() {
             if (!db || !user || !currentPlayer) return;
             try {
+                // Save individual score for leaderboard
+                const scoreId = `${user.uid}_${Date.now()}`;
+                retryWrite(() => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'scores', scoreId), { userId: user.uid, name: currentPlayer.name, company: currentPlayer.company, score, timestamp: Date.now() }));
+                
                 // We still save to the unique lead record for expo analytics
                 const leadId = currentPlayer.email.replace(/[^a-zA-Z0-9]/g, '_');
                 const leadDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leads', leadId);
@@ -668,11 +730,14 @@
             overlay.classList.remove('hidden', 'overlay-reg', 'overlay-sequence'); 
             const area = document.getElementById('game-area'); 
             area.style.backgroundImage = `url('${THEME.graphics.SPLASH}')`;
+            
             document.getElementById('status-message').innerHTML = `
                 <div class="road-stack">
-                    <p class="expo-header">BOMA'S BURGERS</p>
+                    <p class="expo-header">EXPO TOP DASH SCORE</p>
+                    <div id="daily-leaderboard" class="w-full flex justify-center"></div>
                 </div>
             `;
+            updateLeaderboardUI();
             const btns = document.getElementById('difficulty-buttons'); btns.innerHTML = '';
             const btn = document.createElement('button'); btn.className = "btn-pill shadow-xl"; btn.textContent = "Start Game";
             btn.onclick = (e) => { e.stopPropagation(); currentPlayer = null; showRegistration(); };
